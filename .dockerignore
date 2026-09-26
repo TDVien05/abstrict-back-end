@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.git/
+.gitignore
+.vs/
+.idea/
+.dotnet-cli/
+.stitch/
+tests/
+docs/
+*.user
+*.suo
+.env
+.env.docker
+README.md

@@ -1,0 +1,6 @@
+@Abstrict.Api_HostAddress = http://localhost:5191
+
+GET {{Abstrict.Api_HostAddress}}/health
+Accept: application/json
+
+###
