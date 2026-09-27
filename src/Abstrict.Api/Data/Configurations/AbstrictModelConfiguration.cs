@@ -30,6 +30,30 @@ public static partial class AbstrictModelConfiguration
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
         });
 
+        modelBuilder.Entity<PhoneOtpChallenge>(entity =>
+        {
+            entity.Property(x => x.PhoneNumber).HasMaxLength(20);
+            entity.Property(x => x.CodeHash).HasMaxLength(500);
+            entity.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.DeliveryChannel).HasConversion<string>().HasMaxLength(24);
+            entity.HasIndex(x => new { x.UserId, x.Purpose, x.ConsumedAtUtc, x.ExpiresAtUtc, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.PhoneNumber, x.Purpose, x.CreatedAtUtc });
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_phone_otp_challenge_failed_attempt_count",
+                "failed_attempt_count >= 0"));
+            entity.HasOne(x => x.User).WithMany(x => x.PhoneOtpChallenges)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuthSession>(entity =>
+        {
+            entity.Property(x => x.RefreshTokenHash).HasMaxLength(500);
+            entity.HasIndex(x => x.RefreshTokenHash).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.RevokedAtUtc, x.ExpiresAtUtc });
+            entity.HasOne(x => x.User).WithMany(x => x.AuthSessions)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<CustomerProfile>(entity =>
         {
             entity.HasIndex(x => x.UserId).IsUnique();

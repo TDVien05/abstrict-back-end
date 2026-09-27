@@ -8,6 +8,9 @@ Mọi screen Landing Page dành cho desktop/mobile được loại trừ. Các s
 
 | Screen nghiệp vụ | Entity chính | Dữ liệu UI được lưu |
 | --- | --- | --- |
+| Đăng ký Khách hàng - Form tối giản | `User`, `CustomerProfile` | họ tên, số điện thoại, mật khẩu đã băm, thời điểm chấp thuận điều khoản và chính sách quyền riêng tư |
+| Xác thực mã OTP | `PhoneOtpChallenge`, `User` | HMAC OTP, mục đích, kênh SMS/Zalo ZNS, hạn dùng, thời điểm được gửi lại, số lần sai và thời điểm khóa challenge; xác thực thành công cập nhật `PhoneVerifiedAtUtc` |
+| Đăng nhập Khách hàng - Form tối giản | `User`, `AuthSession`, `PhoneOtpChallenge` | đăng nhập bằng số điện thoại/mật khẩu hoặc OTP; phiên ghi nhớ chỉ lưu refresh-token hash, hạn dùng và thời điểm thu hồi |
 | A1 - Khám phá dịch vụ | `Provider`, `FreelancerProfile`, `CompanyProfile`, `ProviderService`, `ServiceCategory`, `ProviderServiceArea`, `AvailabilityWindow`, `Rating`, `PromotionPurchase` | loại đối tác, hồ sơ, giá theo giờ, kỹ năng/dịch vụ, khu vực, lịch rảnh, điểm đánh giá, nhãn tài trợ |
 | A2 - Chi tiết hồ sơ & Chọn lịch | `Provider`, `ProviderService`, `AvailabilityWindow`, `CustomerAddress`, `Booking`, `Rating` | hồ sơ chi tiết, bảng giá, slot rảnh, địa chỉ căn hộ, thời gian và giá tạm tính |
 | A3-A4 - Tạo booking & Ký quỹ | `Booking`, `BookingTask`, `ChecklistTemplate`, `ChecklistTemplateItem`, `Payment` | snapshot thời gian/địa chỉ/giá, checklist đã chốt, ghi chú, cọc và phương thức thanh toán |
@@ -22,6 +25,7 @@ Mọi screen Landing Page dành cho desktop/mobile được loại trừ. Các s
 ## Quyết định mô hình
 
 - `Provider` là hồ sơ thống nhất để discovery/booking/promotion cùng tham chiếu. Chi tiết 1-1 nằm ở `FreelancerProfile` hoặc `CompanyProfile`.
+- Khách hàng đăng ký bằng số điện thoại nên `User.Email` là tùy chọn. OTP được lưu bằng HMAC-SHA256 với khóa cấu hình, challenge hết hạn sau 5 phút, chờ 45 giây trước khi gửi lại và khóa sau 5 lần nhập sai; không lưu mã rõ. Nhà cung cấp SMS production được tích hợp qua `IPhoneOtpSender`.
 - Giá, địa chỉ và checklist được snapshot vào `Booking`/`BookingTask`; thay đổi hồ sơ sau này không làm sai lịch sử đơn.
 - `Payment` ghi giao dịch với cổng thanh toán. `MoneyMovement` ghi nghĩa vụ/biến động tiền; hai khái niệm không gộp.
 - File nhạy cảm chỉ lưu `ObjectKey` và metadata trong `VerificationDocument`, `BookingPhoto`, `DisputeEvidence`; không lưu binary vào PostgreSQL.

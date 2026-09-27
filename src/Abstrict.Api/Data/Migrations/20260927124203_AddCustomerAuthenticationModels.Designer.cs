@@ -3,6 +3,7 @@ using System;
 using Abstrict.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Abstrict.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927124203_AddCustomerAuthenticationModels")]
+    partial class AddCustomerAuthenticationModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1559,10 +1562,6 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("failed_attempt_count");
 
-                    b.Property<DateTimeOffset?>("LockedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("locked_at_utc");
-
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1591,7 +1590,7 @@ namespace Abstrict.Api.Data.Migrations
 
                     b.HasIndex("PhoneNumber", "Purpose", "CreatedAtUtc");
 
-                    b.HasIndex("UserId", "Purpose", "ConsumedAtUtc", "ExpiresAtUtc", "CreatedAtUtc");
+                    b.HasIndex("UserId", "Purpose", "ConsumedAtUtc", "ExpiresAtUtc");
 
                     b.ToTable("phone_otp_challenges", t =>
                         {

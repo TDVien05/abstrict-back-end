@@ -1,6 +1,8 @@
 namespace Abstrict.Api.Models.Enums;
 
 public enum AccountStatus { Pending, Active, Suspended, Closed }
+public enum OtpPurpose { CustomerRegistration, PasswordlessLogin, PasswordReset }
+public enum OtpDeliveryChannel { Sms, ZaloZns }
 public enum ProviderType { Freelancer, Company }
 public enum ApprovalStatus { Draft, Submitted, UnderReview, Approved, Rejected, Suspended }
 public enum Gender { Female, Male, Other, PreferNotToSay }
