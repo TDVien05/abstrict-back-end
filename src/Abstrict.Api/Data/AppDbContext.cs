@@ -47,6 +47,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<DisputeMessage> DisputeMessages => Set<DisputeMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<FreelancerApplication> FreelancerApplications => Set<FreelancerApplication>();
+    public DbSet<IdentityVerificationAttempt> IdentityVerificationAttempts => Set<IdentityVerificationAttempt>();
+    public DbSet<ApplicationSubmission> ApplicationSubmissions => Set<ApplicationSubmission>();
+    public DbSet<KycConsent> KycConsents => Set<KycConsent>();
+    public DbSet<KycOperation> KycOperations => Set<KycOperation>();
+    public DbSet<IdentityClaim> IdentityClaims => Set<IdentityClaim>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
