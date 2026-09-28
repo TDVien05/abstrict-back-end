@@ -1,7 +1,7 @@
 namespace Abstrict.Api.Models.Enums;
 
 public enum AccountStatus { Pending, Active, Suspended, Closed }
-public enum OtpPurpose { CustomerRegistration, PasswordlessLogin, PasswordReset }
+public enum OtpPurpose { CustomerRegistration, PasswordlessLogin, PasswordReset, FreelancerRegistration }
 public enum OtpDeliveryChannel { Sms, ZaloZns }
 public enum ProviderType { Freelancer, Company }
 public enum ApprovalStatus { Draft, Submitted, UnderReview, Approved, Rejected, Suspended }
@@ -65,3 +65,14 @@ public enum ProviderApprovalDecision { Pending, Approved, Rejected, ChangesReque
 public enum ProviderAssessmentType { IdentityReadiness, SkillTest, CompanyDueDiligence }
 public enum ProviderWalletType { Earnings, SecurityDeposit }
 public enum ProviderWalletStatus { Active, Frozen, Closed }
+
+public enum FreelancerApplicationStatus { Draft, Submitted, UnderReview, ChangesRequested, Approved, Rejected }
+public enum OnboardingStep { Personal = 1, Identity = 2, SupportingDocuments = 3, SkillsAndBank = 4 }
+public enum DocumentScanStatus { Pending, Scanning, Clean, Infected, Rejected }
+public enum KycOperationType { IdentityOcr, FaceMatch }
+public enum KycOperationState { Queued, Processing, Succeeded, Failed, Superseded }
+public enum OcrState { NotStarted, Processing, Extracted, NeedsReview, Failed }
+public enum FaceState { NotStarted, Processing, Matched, NotMatched, NeedsReview, TechnicalError }
+public enum LivenessState { NotPerformed, Performed, Failed }
+public enum KycConsentType { IdentityProcessing, FinalSubmission }
+public enum IdentityClaimStatus { Reserved, Released }

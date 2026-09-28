@@ -1,6 +1,12 @@
+using Abstrict.Api.BackgroundJobs;
 using Abstrict.Api.Data;
+using Abstrict.Api.Integrations.Identity;
 using Abstrict.Api.Integrations.Notifications;
+using Abstrict.Api.Integrations.Storage;
 using Abstrict.Api.Models.Entities;
+using Abstrict.Api.Options;
+using Abstrict.Api.Repositories.Implementations;
+using Abstrict.Api.Repositories.Interfaces;
 using Abstrict.Api.Services.Implementations;
 using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +19,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args);
 
 builder.Services.AddControllers();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -43,6 +54,59 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ICustomerRegistrationService, CustomerRegistrationService>();
 builder.Services.AddScoped<ICustomerLoginService, CustomerLoginService>();
+
+builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
+var kycEnabled = builder.Configuration.GetValue<bool>("Kyc:Enabled");
+if (kycEnabled)
+    KycOptionsValidator.Validate(builder.Configuration.GetSection(KycOptions.SectionName).Get<KycOptions>() ?? new KycOptions());
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IFreelancerApplicationRepository, FreelancerApplicationRepository>();
+builder.Services.AddScoped<IVerificationDocumentRepository, VerificationDocumentRepository>();
+builder.Services.AddScoped<IIdentityAttemptRepository, IdentityAttemptRepository>();
+builder.Services.AddScoped<IKycOperationRepository, KycOperationRepository>();
+builder.Services.AddScoped<IApplicationSubmissionRepository, ApplicationSubmissionRepository>();
+builder.Services.AddScoped<IIdentityClaimRepository, IdentityClaimRepository>();
+builder.Services.AddScoped<IKycConsentRepository, KycConsentRepository>();
+
+builder.Services.AddSingleton<IPrivateFileStorage, LocalPrivateFileStorage>();
+builder.Services.AddSingleton<ISensitiveDataProtector, SensitiveDataProtector>();
+builder.Services.AddSingleton<IIdentityFingerprintService, IdentityFingerprintService>();
+builder.Services.AddSingleton<JwtTokenFactory>();
+
+builder.Services.AddScoped<IFreelancerRegistrationService, FreelancerRegistrationService>();
+builder.Services.AddScoped<IFreelancerLoginService, FreelancerLoginService>();
+builder.Services.AddScoped<IFreelancerOnboardingService, FreelancerOnboardingService>();
+builder.Services.AddScoped<IKycService, KycService>();
+builder.Services.AddScoped<IProviderApprovalService, ProviderApprovalService>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+
+if (kycEnabled)
+{
+    var fptBaseUrl = builder.Configuration["Kyc:FptAi:BaseUrl"] ?? "https://api.fpt.ai/";
+    var fptTimeout = builder.Configuration.GetValue<int?>("Kyc:FptAi:TimeoutSeconds") ?? 30;
+    builder.Services.AddHttpClient<IFptAiIdentityClient, FptAiIdentityClient>(client =>
+    {
+        client.BaseAddress = new Uri(fptBaseUrl);
+        client.Timeout = TimeSpan.FromSeconds(fptTimeout);
+    });
+
+    var faceBaseUrl = builder.Configuration["Kyc:FacePlusPlus:BaseUrl"]!;
+    var faceTimeout = builder.Configuration.GetValue<int?>("Kyc:FacePlusPlus:TimeoutSeconds") ?? 30;
+    builder.Services.AddHttpClient<IFaceVerificationClient, FacePlusPlusClient>(client =>
+    {
+        client.BaseAddress = new Uri(faceBaseUrl);
+        client.Timeout = TimeSpan.FromSeconds(faceTimeout);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IFptAiIdentityClient, StubFptAiIdentityClient>();
+    builder.Services.AddSingleton<IFaceVerificationClient, StubFaceVerificationClient>();
+}
+
+builder.Services.AddHostedService<KycOperationWorker>();
 var jwtKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) && !builder.Environment.IsDevelopment())
     throw new InvalidOperationException("Jwt:SigningKey must be configured outside Development.");
@@ -83,6 +147,9 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("auth-otp-resend", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 3, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("kyc-operation", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 builder.Services.AddEndpointsApiExplorer();
