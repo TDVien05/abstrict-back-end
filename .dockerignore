@@ -12,4 +12,5 @@ docs/
 *.suo
 .env
 .env.docker
+**/appsettings.Local.json
 README.md

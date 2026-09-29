@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Threading.RateLimiting;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -70,7 +71,7 @@ builder.Services.AddScoped<IApplicationSubmissionRepository, ApplicationSubmissi
 builder.Services.AddScoped<IIdentityClaimRepository, IdentityClaimRepository>();
 builder.Services.AddScoped<IKycConsentRepository, KycConsentRepository>();
 
-builder.Services.AddSingleton<IPrivateFileStorage, LocalPrivateFileStorage>();
+builder.Services.AddPrivateFileStorage(builder.Configuration);
 builder.Services.AddSingleton<ISensitiveDataProtector, SensitiveDataProtector>();
 builder.Services.AddSingleton<IIdentityFingerprintService, IdentityFingerprintService>();
 builder.Services.AddSingleton<JwtTokenFactory>();
@@ -158,8 +159,14 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "ABSTRICT API",
-        Version = "v1"
+        Version = "v1",
+        Description = "Tài liệu API nền tảng ABSTRICT: xác thực, onboarding và KYC cho khách hàng và freelancer."
     });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
 builder.Services.AddHealthChecks();
 

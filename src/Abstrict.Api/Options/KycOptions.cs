@@ -67,7 +67,7 @@ public sealed class KycDataProtectionOptions
 
 public sealed class KycStorageOptions
 {
-    public string Provider { get; set; } = string.Empty;
+    public string Provider { get; set; } = "MinIO";
     public string Endpoint { get; set; } = string.Empty;
     public string Bucket { get; set; } = string.Empty;
     public string AccessKey { get; set; } = string.Empty;

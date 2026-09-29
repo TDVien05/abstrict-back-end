@@ -9,3 +9,4 @@
 appsettings.Local.json
 .stitch/
 .dotnet-cli/
+.commandcode/
