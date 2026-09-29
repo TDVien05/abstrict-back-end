@@ -20,6 +20,7 @@ namespace Abstrict.Api.Data.Migrations
             migrationBuilder.InsertData(
                 table: "service_categories",
                 columns: new[] { "id", "code", "name", "description", "is_active", "created_at_utc", "updated_at_utc" },
+                columnTypes: new[] { "uuid", "text", "text", "text", "boolean", "timestamp with time zone", "timestamp with time zone" },
                 values: new object[,]
                 {
                     { new Guid("aaaaaaaa-0000-0000-0000-000000000001"), "CLEANING", "Dọn dẹp nhà cửa", "Dọn dẹp, vệ sinh nhà cửa theo giờ hoặc định kỳ.", true, SeededAt, SeededAt },
@@ -39,6 +40,7 @@ namespace Abstrict.Api.Data.Migrations
             migrationBuilder.InsertData(
                 table: "service_areas",
                 columns: new[] { "id", "city", "district", "ward_or_complex", "is_active", "created_at_utc", "updated_at_utc" },
+                columnTypes: new[] { "uuid", "text", "text", "text", "boolean", "timestamp with time zone", "timestamp with time zone" },
                 values: new object[,]
                 {
                     { new Guid("bbbbbbbb-0000-0000-0000-000000000001"), "Hồ Chí Minh", "Quận 1", null, true, SeededAt, SeededAt },
@@ -60,6 +62,7 @@ namespace Abstrict.Api.Data.Migrations
             migrationBuilder.DeleteData(
                 table: "service_areas",
                 keyColumn: "id",
+                keyColumnType: "uuid",
                 keyValues: new object[]
                 {
                     new Guid("bbbbbbbb-0000-0000-0000-000000000001"),
@@ -77,6 +80,7 @@ namespace Abstrict.Api.Data.Migrations
             migrationBuilder.DeleteData(
                 table: "service_categories",
                 keyColumn: "id",
+                keyColumnType: "uuid",
                 keyValues: new object[]
                 {
                     new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
