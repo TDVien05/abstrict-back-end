@@ -40,6 +40,52 @@ services:
     networks:
       - abstrict_network
 
+  minio:
+    container_name: abstrict-minio
+    build:
+      context: .
+      dockerfile: docker/minio/Dockerfile
+      target: server
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.docker}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.docker}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - abstrict_network
+
+  minio-init:
+    build:
+      context: .
+      dockerfile: docker/minio/Dockerfile
+      target: client
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.docker}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.docker}
+      MINIO_BUCKET: ${MINIO_BUCKET:-abstrict-private}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        mc alias set storage http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "storage/$$MINIO_BUCKET"
+        mc anonymous set none "storage/$$MINIO_BUCKET"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - abstrict_network
+
   api:
     container_name: abstrict-api
     build:
@@ -49,11 +95,18 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Database__ApplyMigrations: "true"
+      Kyc__Storage__Provider: MinIO
+      Kyc__Storage__Endpoint: http://minio:9000
+      Kyc__Storage__Bucket: ${MINIO_BUCKET:-abstrict-private}
+      Kyc__Storage__AccessKey: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.docker}
+      Kyc__Storage__SecretKey: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.docker}
       ConnectionStrings__DefaultConnection: >-
         Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB in .env.docker};Username=${POSTGRES_USER:?Set POSTGRES_USER in .env.docker};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
+      minio-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     healthcheck:
@@ -68,6 +121,7 @@ services:
 volumes:
   postgres_data:
   pgadmin_data:
+  minio_data:
 
 networks:
   abstrict_network:

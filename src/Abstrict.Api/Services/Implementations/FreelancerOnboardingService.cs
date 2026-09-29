@@ -147,7 +147,8 @@ public sealed class FreelancerOnboardingService(
         OnboardingDocumentPolicy.Validate(type, contentType, bytes.Length, _kyc.Upload, bytes);
 
         var now = timeProvider.GetUtcNow();
-        var objectKey = await fileStorage.SaveAsync(new MemoryStream(bytes), contentType ?? "application/octet-stream", cancellationToken);
+        buffer.Position = 0;
+        var objectKey = await fileStorage.SaveAsync(buffer, contentType ?? "application/octet-stream", cancellationToken);
         var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
         var previous = await documentRepository.GetCurrentAsync(application.Id, type, cancellationToken);
