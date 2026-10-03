@@ -135,7 +135,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton(new OtpCodeHasher(builder.Configuration["Otp:HmacKey"]));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IPhoneOtpSender>(serviceProvider => builder.Environment.IsDevelopment()
+builder.Services.AddSingleton<IPhoneOtpSender>(serviceProvider =>
+    builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Otp:UseFakeSender")
     ? new DevelopmentPhoneOtpSender()
     : new UnconfiguredPhoneOtpSender());
 builder.Services.AddRateLimiter(options =>

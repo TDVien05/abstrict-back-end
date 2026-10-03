@@ -86,7 +86,7 @@ Response `202`:
 }
 ```
 
-`developmentOtpCode` chỉ có ở môi trường Development khi `Otp:ExposeCodeToClient = true`; production không bao giờ trả mã.
+`developmentOtpCode` được trả về ở Development khi `Otp:ExposeCodeToClient = true`. Để test trên Production, đặt cả `Otp__UseFakeSender=true` và `Otp__ExposeCodeToClient=true`; tắt hai biến này trước khi nhận đăng ký thật vì người dùng có thể xác minh số điện thoại mà không cần nhận tin nhắn.
 
 Lỗi:
 
