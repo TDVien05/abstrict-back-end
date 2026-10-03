@@ -46,6 +46,6 @@ public static class OtpAttemptPolicy
 
 public static class OtpResponseExposurePolicy
 {
-    public static bool ShouldExposeCode(string environmentName, bool configured) =>
-        configured && string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
+    public static bool ShouldExposeCode(string environmentName, bool configured, bool useFakeSender) =>
+        configured && (useFakeSender || string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase));
 }
