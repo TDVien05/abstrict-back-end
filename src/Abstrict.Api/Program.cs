@@ -27,6 +27,11 @@ builder.Configuration
     .AddCommandLine(args);
 
 builder.Services.AddControllers();
+var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.WithOrigins(allowedCorsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -182,6 +187,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseRateLimiter();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
