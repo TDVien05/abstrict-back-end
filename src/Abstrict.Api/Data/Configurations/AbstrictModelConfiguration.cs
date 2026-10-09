@@ -91,7 +91,10 @@ public static partial class AbstrictModelConfiguration
             entity.HasIndex(x => x.ProviderId).IsUnique();
             entity.HasIndex(x => x.UserId).IsUnique();
             entity.Property(x => x.Gender).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.FaceMatchScore).HasPrecision(5, 2);
+            entity.Property(x => x.CitizenIdNumberProtected).HasMaxLength(1000);
+            entity.Property(x => x.CitizenIdHash).HasMaxLength(64);
+            entity.Property(x => x.CitizenIdLast4).HasMaxLength(4);
+            entity.HasIndex(x => x.CitizenIdHash).IsUnique();
             entity.HasOne(x => x.Provider).WithOne(x => x.FreelancerProfile)
                 .HasForeignKey<FreelancerProfile>(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);

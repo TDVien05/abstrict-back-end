@@ -28,7 +28,7 @@ public sealed class CustomerRegistrationService(
     public static readonly TimeSpan ResendCooldown = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan OtpSendWindow = TimeSpan.FromHours(24);
 
-    public async Task<CustomerRegistrationResponse> RegisterAsync(RegisterCustomerRequest request, CancellationToken cancellationToken)
+    public async Task<CustomerRegistrationResponse> RegisterAsync(RegisterCustomerRequest request, CancellationToken cancellationToken, UserRole role = UserRole.Customer)
     {
         var normalizedRequest = CustomerRegistrationInputValidator.Validate(request);
         var fullName = normalizedRequest.FullName;
@@ -45,7 +45,7 @@ public sealed class CustomerRegistrationService(
         {
             Email = null,
             PhoneNumber = phoneNumber,
-            Role = UserRole.Customer,
+            Role = role,
             Status = AccountStatus.Pending
         };
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
@@ -111,7 +111,7 @@ public sealed class CustomerRegistrationService(
         }
 
         var user = await dbContext.Users.SingleOrDefaultAsync(x => x.Id == challenge.UserId, cancellationToken);
-        if (user is null || user.Role != UserRole.Customer || user.Status != AccountStatus.Pending)
+        if (user is null || user.Role is not (UserRole.Customer or UserRole.Freelancer) || user.Status != AccountStatus.Pending)
             throw new AuthFlowException(StatusCodes.Status409Conflict, "CUSTOMER_REGISTRATION_NOT_PENDING", "Tài khoản không còn ở trạng thái chờ xác thực.");
 
         challenge.ConsumedAtUtc = now;
@@ -134,7 +134,7 @@ public sealed class CustomerRegistrationService(
         var user = await dbContext.Users
             .FromSqlInterpolated($"SELECT * FROM users WHERE id = {sourceChallenge.UserId} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
-        if (user is null || user.Role != UserRole.Customer || user.Status != AccountStatus.Pending)
+        if (user is null || user.Role is not (UserRole.Customer or UserRole.Freelancer) || user.Status != AccountStatus.Pending)
             return null;
 
         var now = timeProvider.GetUtcNow();

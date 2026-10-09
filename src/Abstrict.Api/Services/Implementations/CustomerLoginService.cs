@@ -29,7 +29,7 @@ public sealed class CustomerLoginService(
 
         var user = await dbContext.Users.Include(x => x.CustomerProfile)
             .SingleOrDefaultAsync(x => x.PhoneNumber == phoneNumber, cancellationToken);
-        if (user is null || user.Role != UserRole.Customer || user.Status != AccountStatus.Active ||
+        if (user is null || user.Role is UserRole.Company || user.Status != AccountStatus.Active ||
             !user.PhoneVerifiedAtUtc.HasValue || string.IsNullOrEmpty(user.PasswordHash))
             return null;
 
@@ -54,11 +54,11 @@ public sealed class CustomerLoginService(
         var token = new JwtSecurityToken(issuer, audience,
             [new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
              new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-             new Claim(ClaimTypes.Role, UserRole.Customer.ToString()),
+             new Claim(ClaimTypes.Role, user.Role.ToString()),
              new Claim("phone_number", user.PhoneNumber)],
             now.UtcDateTime, expiresAt.UtcDateTime, credentials);
 
         return new CustomerLoginResponse(new JwtSecurityTokenHandler().WriteToken(token), "Bearer", expiresAt,
-            user.Id, user.CustomerProfile?.FullName ?? string.Empty, user.PhoneNumber, UserRole.Customer.ToString());
+            user.Id, user.CustomerProfile?.FullName ?? string.Empty, user.PhoneNumber, user.Role.ToString());
     }
 }

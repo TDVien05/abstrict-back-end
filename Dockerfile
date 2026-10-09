@@ -24,5 +24,7 @@ COPY --from=build /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
+RUN mkdir -p /var/lib/abstrict/storage /var/lib/abstrict/keys && chown -R $APP_UID /var/lib/abstrict
+
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Abstrict.Api.dll"]
