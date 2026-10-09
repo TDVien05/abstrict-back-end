@@ -1,6 +1,7 @@
 using Abstrict.Api.Common;
 using Abstrict.Api.DTOs.Requests;
 using Abstrict.Api.DTOs.Responses;
+using Abstrict.Api.Models.Enums;
 using Abstrict.Api.Services.Implementations;
 using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -70,6 +71,26 @@ public sealed class AuthController(ICustomerRegistrationService registrationServ
         try
         {
             return Accepted(await registrationService.RegisterAsync(request, cancellationToken));
+        }
+        catch (AuthFlowException exception)
+        {
+            return ToProblem(exception);
+        }
+    }
+
+    [HttpPost("register-freelancer")]
+    [EnableRateLimiting("auth-register")]
+    [ProducesResponseType<CustomerRegistrationResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<CustomerRegistrationResponse>> RegisterFreelancer(
+        RegisterCustomerRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Accepted(await registrationService.RegisterAsync(request, cancellationToken, UserRole.Freelancer));
         }
         catch (AuthFlowException exception)
         {

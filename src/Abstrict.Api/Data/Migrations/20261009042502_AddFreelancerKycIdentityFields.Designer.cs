@@ -3,6 +3,7 @@ using System;
 using Abstrict.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Abstrict.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261009042502_AddFreelancerKycIdentityFields")]
+    partial class AddFreelancerKycIdentityFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1287,6 +1290,11 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("experience_years");
 
+                    b.Property<decimal?>("FaceMatchScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("face_match_score");
+
                     b.Property<string>("Gender")
                         .IsRequired()
                         .HasMaxLength(24)
@@ -2321,20 +2329,6 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<long?>("ByteSize")
-                        .HasColumnType("bigint")
-                        .HasColumnName("byte_size");
-
-                    b.Property<string>("ContentHash")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("content_hash");
-
-                    b.Property<string>("ContentType")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("content_type");
-
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -2357,14 +2351,12 @@ namespace Abstrict.Api.Data.Migrations
 
                     b.Property<string>("ObjectKey")
                         .IsRequired()
-                        .HasMaxLength(400)
-                        .HasColumnType("character varying(400)")
+                        .HasColumnType("text")
                         .HasColumnName("object_key");
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
+                        .HasColumnType("text")
                         .HasColumnName("original_file_name");
 
                     b.Property<Guid>("ProviderId")
@@ -2375,25 +2367,11 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("rejection_reason");
 
-                    b.Property<int>("Revision")
-                        .HasColumnType("integer")
-                        .HasColumnName("revision");
-
-                    b.Property<string>("ScanStatus")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)")
-                        .HasColumnName("scan_status");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)")
                         .HasColumnName("status");
-
-                    b.Property<DateTimeOffset?>("SupersededAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("superseded_at_utc");
 
                     b.Property<string>("Type")
                         .IsRequired()

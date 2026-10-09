@@ -1,12 +1,9 @@
-using Abstrict.Api.BackgroundJobs;
 using Abstrict.Api.Data;
-using Abstrict.Api.Integrations.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Abstrict.Api.Integrations.Notifications;
 using Abstrict.Api.Integrations.Storage;
 using Abstrict.Api.Models.Entities;
 using Abstrict.Api.Options;
-using Abstrict.Api.Repositories.Implementations;
-using Abstrict.Api.Repositories.Interfaces;
 using Abstrict.Api.Services.Implementations;
 using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -25,8 +22,8 @@ builder.Configuration
     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
     .AddEnvironmentVariables()
     .AddCommandLine(args);
-
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedCorsOrigins)
@@ -60,59 +57,22 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ICustomerRegistrationService, CustomerRegistrationService>();
 builder.Services.AddScoped<ICustomerLoginService, CustomerLoginService>();
-
+builder.Services.Configure<LocalFileStorageOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddDataProtection()
+    .SetApplicationName("abstrict")
+    .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["DataProtection:KeysPath"]
+        ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys")));
+var kycHashKey = builder.Configuration["Kyc:CitizenIdHashKey"];
+if (string.IsNullOrWhiteSpace(kycHashKey) && !builder.Environment.IsDevelopment())
+    throw new InvalidOperationException("Kyc:CitizenIdHashKey must be configured outside Development.");
+builder.Services.AddSingleton(serviceProvider => new CitizenIdProtector(
+    serviceProvider.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(), kycHashKey));
+builder.Services.AddScoped<IFreelancerKycService, FreelancerKycService>();
+builder.Services.AddScoped<IAdminKycService, AdminKycService>();
+builder.Services.AddScoped<IFreelancerDirectoryService, FreelancerDirectoryService>();
 builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
-var kycEnabled = builder.Configuration.GetValue<bool>("Kyc:Enabled");
-if (kycEnabled)
-    KycOptionsValidator.Validate(builder.Configuration.GetSection(KycOptions.SectionName).Get<KycOptions>() ?? new KycOptions());
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IFreelancerApplicationRepository, FreelancerApplicationRepository>();
-builder.Services.AddScoped<IVerificationDocumentRepository, VerificationDocumentRepository>();
-builder.Services.AddScoped<IIdentityAttemptRepository, IdentityAttemptRepository>();
-builder.Services.AddScoped<IKycOperationRepository, KycOperationRepository>();
-builder.Services.AddScoped<IApplicationSubmissionRepository, ApplicationSubmissionRepository>();
-builder.Services.AddScoped<IIdentityClaimRepository, IdentityClaimRepository>();
-builder.Services.AddScoped<IKycConsentRepository, KycConsentRepository>();
-
-builder.Services.AddPrivateFileStorage(builder.Configuration);
-builder.Services.AddSingleton<ISensitiveDataProtector, SensitiveDataProtector>();
-builder.Services.AddSingleton<IIdentityFingerprintService, IdentityFingerprintService>();
-builder.Services.AddSingleton<JwtTokenFactory>();
-
-builder.Services.AddScoped<IFreelancerRegistrationService, FreelancerRegistrationService>();
-builder.Services.AddScoped<IFreelancerLoginService, FreelancerLoginService>();
-builder.Services.AddScoped<IFreelancerOnboardingService, FreelancerOnboardingService>();
-builder.Services.AddScoped<IKycService, KycService>();
-builder.Services.AddScoped<IProviderApprovalService, ProviderApprovalService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
-
-if (kycEnabled)
-{
-    var fptBaseUrl = builder.Configuration["Kyc:FptAi:BaseUrl"] ?? "https://api.fpt.ai/";
-    var fptTimeout = builder.Configuration.GetValue<int?>("Kyc:FptAi:TimeoutSeconds") ?? 30;
-    builder.Services.AddHttpClient<IFptAiIdentityClient, FptAiIdentityClient>(client =>
-    {
-        client.BaseAddress = new Uri(fptBaseUrl);
-        client.Timeout = TimeSpan.FromSeconds(fptTimeout);
-    });
-
-    var faceBaseUrl = builder.Configuration["Kyc:FacePlusPlus:BaseUrl"]!;
-    var faceTimeout = builder.Configuration.GetValue<int?>("Kyc:FacePlusPlus:TimeoutSeconds") ?? 30;
-    builder.Services.AddHttpClient<IFaceVerificationClient, FacePlusPlusClient>(client =>
-    {
-        client.BaseAddress = new Uri(faceBaseUrl);
-        client.Timeout = TimeSpan.FromSeconds(faceTimeout);
-    });
-}
-else
-{
-    builder.Services.AddSingleton<IFptAiIdentityClient, StubFptAiIdentityClient>();
-    builder.Services.AddSingleton<IFaceVerificationClient, StubFaceVerificationClient>();
-}
-
-builder.Services.AddHostedService<KycOperationWorker>();
 var jwtKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) && !builder.Environment.IsDevelopment())
     throw new InvalidOperationException("Jwt:SigningKey must be configured outside Development.");
@@ -142,6 +102,9 @@ builder.Services.AddSingleton<IPhoneOtpSender>(serviceProvider =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("kyc-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     options.AddPolicy("auth-register", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
@@ -187,9 +150,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseRateLimiter();
 app.UseCors();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -200,6 +163,11 @@ if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
+}
+
+{
+    await using var seedScope = app.Services.CreateAsyncScope();
+    await AdminAccountSeeder.SeedAsync(seedScope.ServiceProvider, builder.Configuration, app.Logger);
 }
 
 app.Run();

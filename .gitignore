@@ -9,4 +9,5 @@
 appsettings.Local.json
 .stitch/
 .dotnet-cli/
+src/Abstrict.Api/App_Data/
 .commandcode/

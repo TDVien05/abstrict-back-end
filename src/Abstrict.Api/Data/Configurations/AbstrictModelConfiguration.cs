@@ -14,7 +14,6 @@ public static partial class AbstrictModelConfiguration
         ConfigureBookings(modelBuilder);
         ConfigurePaymentsAndPromotions(modelBuilder);
         ConfigureTrust(modelBuilder);
-        ConfigureKyc(modelBuilder);
         ApplySnakeCaseNames(modelBuilder);
     }
 
@@ -92,7 +91,10 @@ public static partial class AbstrictModelConfiguration
             entity.HasIndex(x => x.ProviderId).IsUnique();
             entity.HasIndex(x => x.UserId).IsUnique();
             entity.Property(x => x.Gender).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.FaceMatchScore).HasPrecision(5, 2);
+            entity.Property(x => x.CitizenIdNumberProtected).HasMaxLength(1000);
+            entity.Property(x => x.CitizenIdHash).HasMaxLength(64);
+            entity.Property(x => x.CitizenIdLast4).HasMaxLength(4);
+            entity.HasIndex(x => x.CitizenIdHash).IsUnique();
             entity.HasOne(x => x.Provider).WithOne(x => x.FreelancerProfile)
                 .HasForeignKey<FreelancerProfile>(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
@@ -133,7 +135,6 @@ public static partial class AbstrictModelConfiguration
             entity.Property(x => x.ContentType).HasMaxLength(120);
             entity.Property(x => x.ContentHash).HasMaxLength(128);
             entity.HasIndex(x => new { x.ProviderId, x.Type });
-            entity.HasIndex(x => new { x.ApplicationId, x.Type, x.SupersededAtUtc });
             entity.HasOne(x => x.Provider).WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -367,96 +368,6 @@ public static partial class AbstrictModelConfiguration
             entity.Property(x => x.IpAddress).HasMaxLength(64);
             entity.HasIndex(x => new { x.EntityType, x.EntityId, x.CreatedAtUtc });
             entity.HasIndex(x => new { x.ActorUserId, x.CreatedAtUtc });
-        });
-    }
-
-    private static void ConfigureKyc(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<FreelancerApplication>(entity =>
-        {
-            entity.HasIndex(x => x.UserId).IsUnique();
-            entity.HasIndex(x => x.ProviderId).IsUnique();
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.CurrentStep).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.Gender).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.LegalFullName).HasMaxLength(160);
-            entity.Property(x => x.PermanentAddress).HasMaxLength(400);
-            entity.Property(x => x.CurrentAddress).HasMaxLength(400);
-            entity.Property(x => x.BankCode).HasMaxLength(40);
-            entity.Property(x => x.BankAccountNumberEncrypted).HasMaxLength(512);
-            entity.Property(x => x.BankAccountNumberLast4).HasMaxLength(8);
-            entity.Property(x => x.BankAccountHolderName).HasMaxLength(160);
-            entity.Property(x => x.ConfirmedIdentityFullName).HasMaxLength(160);
-            entity.Property(x => x.ConfirmedIdentityDocumentNumberLast4).HasMaxLength(8);
-            entity.Property(x => x.LastDecisionReason).HasMaxLength(1000);
-            entity.ToTable(table => table.HasCheckConstraint(
-                "ck_freelancer_application_experience", "experience_years IS NULL OR experience_years >= 0"));
-            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(x => x.Provider).WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<IdentityVerificationAttempt>(entity =>
-        {
-            entity.HasIndex(x => new { x.ApplicationId, x.SupersededAtUtc });
-            entity.Property(x => x.OcrState).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.FaceState).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.LivenessState).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.Gender).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.FullName).HasMaxLength(160);
-            entity.Property(x => x.PermanentAddress).HasMaxLength(400);
-            entity.Property(x => x.IssuedPlace).HasMaxLength(200);
-            entity.Property(x => x.DocumentType).HasMaxLength(60);
-            entity.Property(x => x.DocumentNumberEncrypted).HasMaxLength(512);
-            entity.Property(x => x.DocumentNumberLast4).HasMaxLength(8);
-            entity.Property(x => x.DocumentNumberFingerprint).HasMaxLength(128);
-            entity.Property(x => x.FaceScore).HasPrecision(6, 2);
-            entity.Property(x => x.FaceThreshold).HasPrecision(6, 2);
-            entity.Property(x => x.ResultCode).HasMaxLength(60);
-            entity.Property(x => x.OcrProviderRequestId).HasMaxLength(120);
-            entity.Property(x => x.FaceProviderRequestId).HasMaxLength(120);
-            entity.Property(x => x.PolicyVersion).HasMaxLength(60);
-            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<ApplicationSubmission>(entity =>
-        {
-            entity.HasIndex(x => new { x.ApplicationId, x.Version }).IsUnique();
-            entity.HasIndex(x => new { x.Status, x.SubmittedAtUtc });
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.Decision).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.DecisionReason).HasMaxLength(1000);
-            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<KycConsent>(entity =>
-        {
-            entity.HasIndex(x => new { x.UserId, x.ConsentType, x.ContentVersion });
-            entity.Property(x => x.ConsentType).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.ContentVersion).HasMaxLength(60);
-            entity.Property(x => x.IpAddress).HasMaxLength(64);
-            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<KycOperation>(entity =>
-        {
-            entity.HasIndex(x => new { x.UserId, x.Type, x.IdempotencyKey }).IsUnique();
-            entity.HasIndex(x => new { x.State, x.NextAttemptAtUtc, x.LeaseExpiresAtUtc });
-            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
-            entity.Property(x => x.State).HasConversion<string>().HasMaxLength(24);
-            entity.Property(x => x.IdempotencyKey).HasMaxLength(120);
-            entity.Property(x => x.RequestHash).HasMaxLength(128);
-            entity.Property(x => x.ErrorCode).HasMaxLength(60);
-            entity.Property(x => x.ProviderRequestId).HasMaxLength(120);
-            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IdentityClaim>(entity =>
-        {
-            entity.HasIndex(x => x.Fingerprint).IsUnique();
-            entity.HasIndex(x => new { x.ApplicationId, x.Status });
-            entity.Property(x => x.Fingerprint).HasMaxLength(128);
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
-            entity.HasOne(x => x.Application).WithMany().HasForeignKey(x => x.ApplicationId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

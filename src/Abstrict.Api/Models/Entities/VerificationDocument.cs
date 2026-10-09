@@ -5,7 +5,6 @@ namespace Abstrict.Api.Models.Entities;
 public sealed class VerificationDocument : Entity
 {
     public Guid ProviderId { get; set; }
-    public Guid? ApplicationId { get; set; }
     public VerificationDocumentType Type { get; set; }
     public VerificationStatus Status { get; set; } = VerificationStatus.Pending;
     public int Revision { get; set; } = 1;
