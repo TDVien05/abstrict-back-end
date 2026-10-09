@@ -1,7 +1,7 @@
 namespace Abstrict.Api.Models.Enums;
 
 public enum AccountStatus { Pending, Active, Suspended, Closed }
-public enum OtpPurpose { CustomerRegistration, PasswordlessLogin, PasswordReset }
+public enum OtpPurpose { CustomerRegistration, PasswordlessLogin, PasswordReset, FreelancerRegistration }
 public enum OtpDeliveryChannel { Sms, ZaloZns }
 public enum ProviderType { Freelancer, Company }
 public enum ApprovalStatus { Draft, Submitted, UnderReview, Approved, Rejected, Suspended }
@@ -65,3 +65,5 @@ public enum ProviderApprovalDecision { Pending, Approved, Rejected, ChangesReque
 public enum ProviderAssessmentType { IdentityReadiness, SkillTest, CompanyDueDiligence }
 public enum ProviderWalletType { Earnings, SecurityDeposit }
 public enum ProviderWalletStatus { Active, Frozen, Closed }
+
+public enum DocumentScanStatus { Pending, Scanning, Clean, Infected, Rejected }

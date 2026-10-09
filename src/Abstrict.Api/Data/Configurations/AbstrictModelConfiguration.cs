@@ -129,6 +129,11 @@ public static partial class AbstrictModelConfiguration
         {
             entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(40);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(24);
+            entity.Property(x => x.ScanStatus).HasConversion<string>().HasMaxLength(24);
+            entity.Property(x => x.ObjectKey).HasMaxLength(400);
+            entity.Property(x => x.OriginalFileName).HasMaxLength(300);
+            entity.Property(x => x.ContentType).HasMaxLength(120);
+            entity.Property(x => x.ContentHash).HasMaxLength(128);
             entity.HasIndex(x => new { x.ProviderId, x.Type });
             entity.HasOne(x => x.Provider).WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
         });

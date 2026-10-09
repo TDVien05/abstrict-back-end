@@ -33,7 +33,7 @@ Set `Jwt:SigningKey` to a random secret of at least 32 UTF-8 bytes in non-develo
 
 The name must contain 2–160 characters. Vietnamese phone numbers with 10 or 11 digits are normalized before storage. Passwords must contain at least 8 characters, a letter and a digit. Terms and privacy acceptance are required and their UTC timestamps are stored on `User`. Passwords are stored using ASP.NET Core's password hasher.
 
-The endpoint creates a pending customer and issues a 6-digit registration OTP. A challenge expires after 5 minutes, can be resent after 45 seconds, and at most 5 OTPs may be issued to a phone number in 24 hours. Requests are additionally limited to 5 per IP in 10 minutes. The response contains the challenge id, phone number and UTC deadlines. In Development only, when `Otp:ExposeCodeToClient` is enabled, it also contains `developmentOtpCode` so the FE can complete the flow without an SMS provider.
+The endpoint creates a pending customer and issues a 6-digit registration OTP. A challenge expires after 5 minutes, can be resent after 45 seconds, and at most 5 OTPs may be issued to a phone number in 24 hours. Requests are additionally limited to 5 per IP in 10 minutes. The response contains the challenge id, phone number and UTC deadlines. When code exposure is enabled, it also contains `developmentOtpCode` so the FE can complete the flow without an SMS provider.
 
 ## Verify phone
 
@@ -53,10 +53,10 @@ The code must be exactly 6 ASCII digits. Five incorrect attempts lock and consum
 { "challengeId": "00000000-0000-0000-0000-000000000000" }
 ```
 
-The endpoint returns a new challenge id and deadlines, observes the same cooldown and daily phone limit, and is limited to 3 requests per IP in 10 minutes. It includes `developmentOtpCode` under the same Development-only setting.
+The endpoint returns a new challenge id and deadlines, observes the same cooldown and daily phone limit, and is limited to 3 requests per IP in 10 minutes. It includes `developmentOtpCode` under the same code-exposure setting.
 
 Errors use `ProblemDetails` with a stable `code`, such as `VALIDATION_FAILED`, `INVALID_OTP`, `OTP_EXPIRED`, `OTP_ATTEMPTS_EXCEEDED`, `OTP_RESEND_COOLDOWN`, and `OTP_SEND_LIMIT_EXCEEDED`. Cooldown responses include `Retry-After` seconds.
 
 ## OTP delivery configuration
 
-Development uses a mock sender that returns the code to the FE; the code is not written to logs. Code exposure additionally requires both the Development environment and `Otp:ExposeCodeToClient`. Production never returns the OTP and currently fails closed because no SMS/Zalo provider or credentials have been selected; implement/register an `IPhoneOtpSender` for the chosen provider before enabling registration there. `Otp:HmacKey` is a local-only key in `appsettings.Development.json`; production must override it with a randomly generated secret of at least 32 UTF-8 bytes.
+Development uses a fake sender. Production can opt into the same sender for testing with `Otp__UseFakeSender=true`. To return `developmentOtpCode` in the registration and resend responses, also set `Otp__ExposeCodeToClient=true`. Production does not return the code unless both flags are enabled. The code is not written to logs. This test mode lets anyone complete phone verification without receiving a message, so disable both flags before accepting real registrations. `Otp:HmacKey` is a local-only key in `appsettings.Development.json`; production must set `Otp__HmacKey` to a random secret of at least 32 UTF-8 bytes.

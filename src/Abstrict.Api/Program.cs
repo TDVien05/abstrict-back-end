@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.DataProtection;
 using Abstrict.Api.Integrations.Notifications;
 using Abstrict.Api.Integrations.Storage;
 using Abstrict.Api.Models.Entities;
+using Abstrict.Api.Options;
 using Abstrict.Api.Services.Implementations;
 using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Threading.RateLimiting;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,9 +18,17 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.WithOrigins(allowedCorsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -61,6 +71,8 @@ builder.Services.AddSingleton(serviceProvider => new CitizenIdProtector(
 builder.Services.AddScoped<IFreelancerKycService, FreelancerKycService>();
 builder.Services.AddScoped<IAdminKycService, AdminKycService>();
 builder.Services.AddScoped<IFreelancerDirectoryService, FreelancerDirectoryService>();
+builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
+builder.Services.AddScoped<ICatalogService, CatalogService>();
 var jwtKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) && !builder.Environment.IsDevelopment())
     throw new InvalidOperationException("Jwt:SigningKey must be configured outside Development.");
@@ -83,7 +95,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton(new OtpCodeHasher(builder.Configuration["Otp:HmacKey"]));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IPhoneOtpSender>(serviceProvider => builder.Environment.IsDevelopment()
+builder.Services.AddSingleton<IPhoneOtpSender>(serviceProvider =>
+    builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Otp:UseFakeSender")
     ? new DevelopmentPhoneOtpSender()
     : new UnconfiguredPhoneOtpSender());
 builder.Services.AddRateLimiter(options =>
@@ -104,6 +117,9 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("auth-otp-resend", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 3, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("kyc-operation", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -112,20 +128,29 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "ABSTRICT API",
-        Version = "v1"
+        Version = "v1",
+        Description = "Tài liệu API nền tảng ABSTRICT: xác thực, onboarding và KYC cho khách hàng và freelancer."
     });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
 }
 
 app.UseExceptionHandler();
+app.UseCors();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

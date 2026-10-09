@@ -9,10 +9,24 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Abstrict.Api.Controllers;
 
+/// <summary>
+/// Xác thực và đăng ký tài khoản khách hàng.
+/// </summary>
+/// <remarks>
+/// Bao gồm đăng ký, xác thực số điện thoại qua OTP và đăng nhập bằng số điện thoại/mật khẩu.
+/// </remarks>
 [ApiController]
 [Route(ApiRoutes.Version1 + "/auth")]
 public sealed class AuthController(ICustomerRegistrationService registrationService, ICustomerLoginService loginService) : ControllerBase
 {
+    /// <summary>
+    /// Đăng nhập khách hàng.
+    /// </summary>
+    /// <remarks>
+    /// Xác thực bằng số điện thoại và mật khẩu, trả về JWT access token khi thành công.
+    /// Trả về 401 nếu thông tin đăng nhập không chính xác hoặc tài khoản chưa được kích hoạt.
+    /// Giới hạn tần suất theo địa chỉ IP (10 lần/phút).
+    /// </remarks>
     [HttpPost("login")]
     [EnableRateLimiting("auth-login")]
     [ProducesResponseType<CustomerLoginResponse>(StatusCodes.Status200OK)]
@@ -36,6 +50,14 @@ public sealed class AuthController(ICustomerRegistrationService registrationServ
         return Unauthorized(problem);
     }
 
+    /// <summary>
+    /// Đăng ký tài khoản khách hàng.
+    /// </summary>
+    /// <remarks>
+    /// Tạo tài khoản khách hàng mới và gửi OTP xác thực số điện thoại.
+    /// Trả về 202 kèm mã thử thách (challenge) để tiếp tục xác thực OTP.
+    /// Giới hạn tần suất theo địa chỉ IP (5 lần/10 phút).
+    /// </remarks>
     [HttpPost("register")]
     [EnableRateLimiting("auth-register")]
     [ProducesResponseType<CustomerRegistrationResponse>(StatusCodes.Status202Accepted)]
@@ -76,6 +98,13 @@ public sealed class AuthController(ICustomerRegistrationService registrationServ
         }
     }
 
+    /// <summary>
+    /// Xác thực số điện thoại khách hàng bằng OTP.
+    /// </summary>
+    /// <remarks>
+    /// Kiểm tra mã OTP của thử thách đã tạo khi đăng ký; kích hoạt tài khoản khi xác thực thành công.
+    /// Trả về 410 nếu mã OTP đã hết hạn.
+    /// </remarks>
     [HttpPost("verify-phone-otp")]
     [EnableRateLimiting("auth-otp-verify")]
     [ProducesResponseType<CustomerPhoneVerificationResponse>(StatusCodes.Status200OK)]
@@ -96,6 +125,13 @@ public sealed class AuthController(ICustomerRegistrationService registrationServ
         }
     }
 
+    /// <summary>
+    /// Gửi lại OTP xác thực số điện thoại khách hàng.
+    /// </summary>
+    /// <remarks>
+    /// Gửi lại mã OTP cho thử thách còn hiệu lực; trả về 404 nếu không tìm thấy thử thách.
+    /// Giới hạn tần suất theo địa chỉ IP (3 lần/10 phút).
+    /// </remarks>
     [HttpPost("resend-phone-otp")]
     [EnableRateLimiting("auth-otp-resend")]
     [ProducesResponseType<CustomerRegistrationResponse>(StatusCodes.Status202Accepted)]

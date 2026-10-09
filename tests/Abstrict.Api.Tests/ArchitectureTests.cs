@@ -190,15 +190,18 @@ public sealed class CustomerRegistrationPolicyTests
     }
 
     [Theory]
-    [InlineData("Development", true, true)]
-    [InlineData("Development", false, false)]
-    [InlineData("Production", true, false)]
-    [InlineData("Staging", true, false)]
-    public void OtpResponseExposurePolicy_RequiresDevelopmentAndExplicitSetting(
+    [InlineData("Development", true, false, true)]
+    [InlineData("Development", false, false, false)]
+    [InlineData("Production", true, false, false)]
+    [InlineData("Production", false, true, false)]
+    [InlineData("Production", true, true, true)]
+    [InlineData("Staging", true, false, false)]
+    public void OtpResponseExposurePolicy_RequiresExplicitSettingAndFakeSenderOutsideDevelopment(
         string environmentName,
         bool configured,
+        bool useFakeSender,
         bool expected) =>
-        Assert.Equal(expected, OtpResponseExposurePolicy.ShouldExposeCode(environmentName, configured));
+        Assert.Equal(expected, OtpResponseExposurePolicy.ShouldExposeCode(environmentName, configured, useFakeSender));
 
     private static IList<ValidationResult> Validate(object value)
     {

@@ -3,6 +3,7 @@ using System;
 using Abstrict.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Abstrict.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928161246_AddFreelancerOnboarding")]
+    partial class AddFreelancerOnboarding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,85 @@ namespace Abstrict.Api.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.ApplicationSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<DateTimeOffset?>("DecidedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at_utc");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("decision");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("decision_reason");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<string>("RequestedChangesJson")
+                        .HasColumnType("text")
+                        .HasColumnName("requested_changes_json");
+
+                    b.Property<DateTimeOffset?>("ReviewStartedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("review_started_at_utc");
+
+                    b.Property<Guid?>("ReviewedByAdminUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by_admin_user_id");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("snapshot_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("SubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at_utc");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "Version")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "SubmittedAtUtc");
+
+                    b.ToTable("application_submissions");
+                });
 
             modelBuilder.Entity("Abstrict.Api.Models.Entities.AuditLog", b =>
                 {
@@ -1241,6 +1323,142 @@ namespace Abstrict.Api.Data.Migrations
                     b.ToTable("dispute_messages");
                 });
 
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.FreelancerApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BankAccountHolderName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("bank_account_holder_name");
+
+                    b.Property<bool>("BankAccountHolderNameOverridden")
+                        .HasColumnType("boolean")
+                        .HasColumnName("bank_account_holder_name_overridden");
+
+                    b.Property<string>("BankAccountNumberEncrypted")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("bank_account_number_encrypted");
+
+                    b.Property<string>("BankAccountNumberLast4")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("bank_account_number_last4");
+
+                    b.Property<string>("BankCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("bank_code");
+
+                    b.Property<string>("ConfirmedIdentityDocumentNumberLast4")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("confirmed_identity_document_number_last4");
+
+                    b.Property<string>("ConfirmedIdentityFullName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("confirmed_identity_full_name");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CurrentAddress")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("current_address");
+
+                    b.Property<string>("CurrentStep")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("current_step");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date")
+                        .HasColumnName("date_of_birth");
+
+                    b.Property<int?>("ExperienceYears")
+                        .HasColumnType("integer")
+                        .HasColumnName("experience_years");
+
+                    b.Property<string>("Gender")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("gender");
+
+                    b.Property<string>("LastDecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_decision_reason");
+
+                    b.Property<string>("LegalFullName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("legal_full_name");
+
+                    b.Property<string>("PermanentAddress")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("permanent_address");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<string>("ServiceAreaIdsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("service_area_ids_json");
+
+                    b.Property<string>("ServiceCategoryIdsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("service_category_ids_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at_utc");
+
+                    b.Property<int?>("SubmittedVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("submitted_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("freelancer_applications", t =>
+                        {
+                            t.HasCheckConstraint("ck_freelancer_application_experience", "experience_years IS NULL OR experience_years >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Abstrict.Api.Models.Entities.FreelancerProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1251,24 +1469,6 @@ namespace Abstrict.Api.Data.Migrations
                     b.Property<bool>("AutoAcceptBookings")
                         .HasColumnType("boolean")
                         .HasColumnName("auto_accept_bookings");
-
-                    b.Property<string>("CitizenIdHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("citizen_id_hash");
-
-                    b.Property<string>("CitizenIdLast4")
-                        .IsRequired()
-                        .HasMaxLength(4)
-                        .HasColumnType("character varying(4)")
-                        .HasColumnName("citizen_id_last4");
-
-                    b.Property<string>("CitizenIdNumberProtected")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("citizen_id_number_protected");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -1286,6 +1486,11 @@ namespace Abstrict.Api.Data.Migrations
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("integer")
                         .HasColumnName("experience_years");
+
+                    b.Property<decimal?>("FaceMatchScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("face_match_score");
 
                     b.Property<string>("Gender")
                         .IsRequired()
@@ -1317,9 +1522,6 @@ namespace Abstrict.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CitizenIdHash")
-                        .IsUnique();
-
                     b.HasIndex("ProviderId")
                         .IsUnique();
 
@@ -1327,6 +1529,377 @@ namespace Abstrict.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("freelancer_profiles");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.IdentityClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<DateTimeOffset?>("ReleasedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("released_at_utc");
+
+                    b.Property<DateTimeOffset>("ReservedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique();
+
+                    b.HasIndex("ApplicationId", "Status");
+
+                    b.ToTable("identity_claims");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.IdentityVerificationAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<int>("ApplicationVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("application_version");
+
+                    b.Property<Guid?>("BackDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("back_document_id");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmed_at_utc");
+
+                    b.Property<string>("CorrectionsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("corrections_json");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date")
+                        .HasColumnName("date_of_birth");
+
+                    b.Property<string>("DocumentNumberEncrypted")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("document_number_encrypted");
+
+                    b.Property<string>("DocumentNumberFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("document_number_fingerprint");
+
+                    b.Property<string>("DocumentNumberLast4")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("document_number_last4");
+
+                    b.Property<string>("DocumentType")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("document_type");
+
+                    b.Property<DateOnly?>("ExpiresOn")
+                        .HasColumnType("date")
+                        .HasColumnName("expires_on");
+
+                    b.Property<DateTimeOffset?>("FaceCompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("face_completed_at_utc");
+
+                    b.Property<string>("FaceProviderRequestId")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("face_provider_request_id");
+
+                    b.Property<decimal?>("FaceScore")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("face_score");
+
+                    b.Property<string>("FaceState")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("face_state");
+
+                    b.Property<decimal?>("FaceThreshold")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("face_threshold");
+
+                    b.Property<string>("FieldConfidencesJson")
+                        .HasColumnType("text")
+                        .HasColumnName("field_confidences_json");
+
+                    b.Property<Guid?>("FrontDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("front_document_id");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("full_name");
+
+                    b.Property<string>("Gender")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("gender");
+
+                    b.Property<DateOnly?>("IssuedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("issued_on");
+
+                    b.Property<string>("IssuedPlace")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("issued_place");
+
+                    b.Property<string>("LivenessState")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("liveness_state");
+
+                    b.Property<DateTimeOffset?>("OcrCompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocr_completed_at_utc");
+
+                    b.Property<string>("OcrProviderRequestId")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("ocr_provider_request_id");
+
+                    b.Property<string>("OcrState")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("ocr_state");
+
+                    b.Property<string>("PermanentAddress")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("permanent_address");
+
+                    b.Property<string>("PolicyVersion")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("policy_version");
+
+                    b.Property<string>("ResultCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("result_code");
+
+                    b.Property<Guid?>("SelfieDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("selfie_document_id");
+
+                    b.Property<DateTimeOffset?>("SupersededAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("superseded_at_utc");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "SupersededAtUtc");
+
+                    b.ToTable("identity_verification_attempts");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.KycConsent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AcceptedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at_utc");
+
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<string>("ConsentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("consent_type");
+
+                    b.Property<string>("ContentVersion")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("content_version");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawn_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ConsentType", "ContentVersion");
+
+                    b.ToTable("kyc_consents");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.KycOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<Guid?>("AttemptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid?>("InputRevisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("input_revision_id");
+
+                    b.Property<DateTimeOffset?>("LeaseExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at_utc");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at_utc");
+
+                    b.Property<string>("ProviderRequestId")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("provider_request_id");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("request_hash");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("text")
+                        .HasColumnName("result_json");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("State", "NextAttemptAtUtc", "LeaseExpiresAtUtc");
+
+                    b.HasIndex("UserId", "Type", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("kyc_operations");
                 });
 
             modelBuilder.Entity("Abstrict.Api.Models.Entities.MoneyMovement", b =>
@@ -2321,6 +2894,10 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
                     b.Property<long?>("ByteSize")
                         .HasColumnType("bigint")
                         .HasColumnName("byte_size");
@@ -2417,7 +2994,20 @@ namespace Abstrict.Api.Data.Migrations
 
                     b.HasIndex("ProviderId", "Type");
 
+                    b.HasIndex("ApplicationId", "Type", "SupersededAtUtc");
+
                     b.ToTable("verification_documents");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.ApplicationSubmission", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.FreelancerApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
                 });
 
             modelBuilder.Entity("Abstrict.Api.Models.Entities.AuthSession", b =>
@@ -2697,6 +3287,25 @@ namespace Abstrict.Api.Data.Migrations
                     b.Navigation("Dispute");
                 });
 
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.FreelancerApplication", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Abstrict.Api.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Abstrict.Api.Models.Entities.FreelancerProfile", b =>
                 {
                     b.HasOne("Abstrict.Api.Models.Entities.Provider", "Provider")
@@ -2714,6 +3323,50 @@ namespace Abstrict.Api.Data.Migrations
                     b.Navigation("Provider");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.IdentityClaim", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.FreelancerApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.IdentityVerificationAttempt", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.FreelancerApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.KycConsent", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Abstrict.Api.Models.Entities.KycOperation", b =>
+                {
+                    b.HasOne("Abstrict.Api.Models.Entities.FreelancerApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
                 });
 
             modelBuilder.Entity("Abstrict.Api.Models.Entities.MoneyMovement", b =>

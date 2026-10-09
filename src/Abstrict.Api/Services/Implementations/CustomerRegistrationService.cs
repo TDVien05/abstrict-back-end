@@ -203,7 +203,8 @@ public sealed class CustomerRegistrationService(
         {
             DevelopmentOtpCode = OtpResponseExposurePolicy.ShouldExposeCode(
                 hostEnvironment.EnvironmentName,
-                configuration.GetValue<bool>("Otp:ExposeCodeToClient"))
+                configuration.GetValue<bool>("Otp:ExposeCodeToClient"),
+                configuration.GetValue<bool>("Otp:UseFakeSender"))
                     ? developmentOtpCode
                     : null
         };
