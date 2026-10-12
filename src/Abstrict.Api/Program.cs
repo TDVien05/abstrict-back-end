@@ -1,6 +1,8 @@
+using Abstrict.Api.BackgroundJobs;
 using Abstrict.Api.Data;
 using Microsoft.AspNetCore.DataProtection;
 using Abstrict.Api.Integrations.Notifications;
+using Abstrict.Api.Integrations.Payments;
 using Abstrict.Api.Integrations.Storage;
 using Abstrict.Api.Models.Entities;
 using Abstrict.Api.Options;
@@ -27,6 +29,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(allowedCorsOrigins)
+        .AllowCredentials()
         .AllowAnyHeader()
         .AllowAnyMethod()));
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -73,6 +76,19 @@ builder.Services.AddScoped<IAdminKycService, AdminKycService>();
 builder.Services.AddScoped<IFreelancerDirectoryService, FreelancerDirectoryService>();
 builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
 builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<ICompanyOnboardingService, CompanyOnboardingService>();
+builder.Services.AddScoped<IAdminCompanyReviewService, AdminCompanyReviewService>();
+builder.Services.Configure<BookingOptions>(builder.Configuration.GetSection(BookingOptions.SectionName));
+builder.Services.Configure<PaymentOptions>(builder.Configuration.GetSection(PaymentOptions.SectionName));
+builder.Services.AddSingleton<IPaymentGateway, SandboxPaymentGateway>();
+builder.Services.AddScoped<BookingWorkflow>();
+builder.Services.AddScoped<ICustomerAddressService, CustomerAddressService>();
+builder.Services.AddScoped<ICustomerAvatarService, CustomerAvatarService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
+builder.Services.AddScoped<IFreelancerBookingService, FreelancerBookingService>();
+builder.Services.AddHostedService<BookingExpiryJob>();
 var jwtKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) && !builder.Environment.IsDevelopment())
     throw new InvalidOperationException("Jwt:SigningKey must be configured outside Development.");
@@ -105,12 +121,21 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("kyc-write", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("booking-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("avatar-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     options.AddPolicy("auth-register", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     options.AddPolicy("auth-login", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("auth-refresh", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.AddPolicy("auth-otp-verify", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -129,7 +154,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "ABSTRICT API",
         Version = "v1",
-        Description = "Tài liệu API nền tảng ABSTRICT: xác thực, onboarding và KYC cho khách hàng và freelancer."
+        Description = "Tài liệu API nền tảng ABSTRICT: xác thực, onboarding và KYC cho khách hàng, freelancer và công ty đối tác; lịch rảnh, đặt lịch, đặt cọc và quản lý đơn."
     });
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";

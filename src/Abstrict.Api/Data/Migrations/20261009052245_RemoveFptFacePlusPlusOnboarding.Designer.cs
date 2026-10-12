@@ -1321,7 +1321,8 @@ namespace Abstrict.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CitizenIdHash")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("citizen_id_hash <> ''");
 
                     b.HasIndex("ProviderId")
                         .IsUnique();

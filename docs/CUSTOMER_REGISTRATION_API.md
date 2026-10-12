@@ -13,7 +13,7 @@ All routes use `/api/v1/auth`.
 }
 ```
 
-The phone number is normalized using the same Vietnamese number rules as registration. Login succeeds only for an active customer whose phone number has been verified. A successful response contains a 15-minute JWT access token, returned as `tokenType: "Bearer"`, plus basic customer identity fields. Send it on protected endpoints as `Authorization: Bearer <accessToken>`. Login is limited to 10 requests per IP per minute. Incorrect credentials and inactive/unverified accounts return the same `401 INVALID_CREDENTIALS` response.
+The phone number is normalized using the same Vietnamese number rules as registration. Login succeeds only for an active customer whose phone number has been verified. A successful response contains a 15-minute JWT access token, returned as `tokenType: "Bearer"`, plus basic identity fields. Customer accounts also receive a `customerProfile` object (full name, phone number, `avatarUrl`); see `CUSTOMER_PROFILE_API.md`. It is `null` for other roles. Send it on protected endpoints as `Authorization: Bearer <accessToken>`. Login is limited to 10 requests per IP per minute. Incorrect credentials and inactive/unverified accounts return the same `401 INVALID_CREDENTIALS` response.
 
 Set `Jwt:SigningKey` to a random secret of at least 32 UTF-8 bytes in non-development environments. `Jwt:Issuer` and `Jwt:Audience` can also be overridden. Production startup fails when the signing key is absent. The development signing key is local-only.
 

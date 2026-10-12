@@ -84,7 +84,7 @@ Response `200`:
   "experienceYears": 12,
   "isAcceptingBookings": true,
   "services": [
-    { "code": "ELDERLY_CARE", "name": "Chăm sóc người cao tuổi", "hourlyRateVnd": 110000, "description": null }
+    { "serviceCategoryId": "aaaaaaaa-0000-0000-0000-000000000006", "code": "ELDERLY_CARE", "name": "Chăm sóc người cao tuổi", "hourlyRateVnd": 110000, "description": null }
   ],
   "serviceAreas": [
     { "id": "bbbbbbbb-0000-0000-0000-000000000009", "city": "Đà Nẵng", "district": "Hải Châu", "wardOrComplex": null, "travelRadiusKm": 10 }

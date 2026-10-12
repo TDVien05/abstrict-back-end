@@ -38,4 +38,22 @@ public sealed class CatalogService(AppDbContext dbContext, IOptions<KycOptions> 
             .ToList();
         return Task.FromResult(banks);
     }
+
+    public async Task<ChecklistTemplateResponse?> GetChecklistAsync(string serviceCategoryCode, CancellationToken cancellationToken)
+    {
+        var code = serviceCategoryCode.Trim().ToUpperInvariant();
+        var template = await dbContext.ChecklistTemplates.AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => x.IsActive && x.ServiceCategory.IsActive && x.ServiceCategory.Code == code)
+            .OrderByDescending(x => x.Version)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (template is null)
+            return null;
+
+        return new ChecklistTemplateResponse(
+            template.Id, template.Name, template.Version,
+            template.Items.OrderBy(x => x.SortOrder)
+                .Select(x => new ChecklistItemResponse(x.Id, x.ParentItemId, x.AreaName, x.Description, x.SortOrder, x.IsRequired))
+                .ToList());
+    }
 }

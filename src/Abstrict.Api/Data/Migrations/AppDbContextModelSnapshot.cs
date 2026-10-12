@@ -498,6 +498,10 @@ namespace Abstrict.Api.Data.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("from_status");
 
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
                     b.Property<string>("Reason")
                         .HasColumnType("text")
                         .HasColumnName("reason");
@@ -1318,7 +1322,8 @@ namespace Abstrict.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CitizenIdHash")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("citizen_id_hash <> ''");
 
                     b.HasIndex("ProviderId")
                         .IsUnique();

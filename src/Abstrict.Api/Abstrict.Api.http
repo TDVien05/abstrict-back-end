@@ -4,3 +4,190 @@ GET {{Abstrict.Api_HostAddress}}/health
 Accept: application/json
 
 ###
+
+### Booking flow (xem docs/BOOKING_API.md). Điền token sau khi đăng nhập.
+@CustomerToken = <accessToken của khách>
+@FreelancerToken = <accessToken của freelancer>
+@ProviderId = dddddddd-0000-0000-0000-000000000001
+@CleaningId = aaaaaaaa-0000-0000-0000-000000000001
+@AddressId = <id địa chỉ>
+@BookingId = <id đơn>
+@PaymentId = <id giao dịch>
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/customer/addresses
+Authorization: Bearer {{CustomerToken}}
+Content-Type: application/json
+
+{ "label": "Nhà", "apartmentNumber": "A-1205", "buildingName": "Vinhomes", "streetAddress": "12 Lê Lợi", "ward": "Bến Nghé", "district": "Quận 1", "city": "Hồ Chí Minh" }
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/freelancers/{{ProviderId}}/availability?days=7
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/catalog/service-categories/CLEANING/checklist
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/bookings/quote
+Authorization: Bearer {{CustomerToken}}
+Content-Type: application/json
+
+{ "providerId": "{{ProviderId}}", "serviceCategoryId": "{{CleaningId}}", "customerAddressId": "{{AddressId}}", "startsAtUtc": "2026-10-20T01:00:00Z", "endsAtUtc": "2026-10-20T03:30:00Z" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/bookings
+Authorization: Bearer {{CustomerToken}}
+Content-Type: application/json
+
+{ "providerId": "{{ProviderId}}", "serviceCategoryId": "{{CleaningId}}", "customerAddressId": "{{AddressId}}", "startsAtUtc": "2026-10-20T01:00:00Z", "endsAtUtc": "2026-10-20T03:30:00Z", "checklistItemIds": [], "customerNote": "Có thú cưng" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/bookings/{{BookingId}}/deposit
+Authorization: Bearer {{CustomerToken}}
+Idempotency-Key: demo-1
+Content-Type: application/json
+
+{ "method": "Momo" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/payments/sandbox/{{PaymentId}}/confirm
+Authorization: Bearer {{CustomerToken}}
+Content-Type: application/json
+
+{ "succeeded": true }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/freelancer/bookings/{{BookingId}}/confirm
+Authorization: Bearer {{FreelancerToken}}
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/bookings/{{BookingId}}
+Authorization: Bearer {{CustomerToken}}
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/bookings/{{BookingId}}/cancellation-preview
+Authorization: Bearer {{CustomerToken}}
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/bookings/{{BookingId}}/cancel
+Authorization: Bearer {{CustomerToken}}
+Content-Type: application/json
+
+{ "reason": "Đổi lịch" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/bookings/{{BookingId}}/check-in-token
+Authorization: Bearer {{CustomerToken}}
+
+###
+
+### Customer avatar (xem docs/CUSTOMER_PROFILE_API.md)
+PUT {{Abstrict.Api_HostAddress}}/api/v1/customer/profile/avatar
+Authorization: Bearer {{CustomerToken}}
+Content-Type: multipart/form-data; boundary=avatar
+
+--avatar
+Content-Disposition: form-data; name="file"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpg
+--avatar--
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/customer/profile/avatar
+Authorization: Bearer {{CustomerToken}}
+
+###
+
+DELETE {{Abstrict.Api_HostAddress}}/api/v1/customer/profile/avatar
+Authorization: Bearer {{CustomerToken}}
+
+###
+
+### Company onboarding (xem docs/COMPANY_ONBOARDING_API.md)
+@CompanyToken = <accessToken của công ty>
+@AdminToken = <accessToken của admin>
+@CompanyProviderId = <providerId của công ty>
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/auth/register-company
+Content-Type: application/json
+
+{ "fullName": "Trần Văn An", "phoneNumber": "0933000099", "password": "abc12345", "confirmPassword": "abc12345", "acceptTermsAndPrivacy": true }
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding
+Authorization: Bearer {{CompanyToken}}
+
+###
+
+PUT {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding/company
+Authorization: Bearer {{CompanyToken}}
+Content-Type: application/json
+
+{ "legalName": "Công ty TNHH Sạch Nhà", "displayName": "Sạch Nhà", "taxCode": "0312345679", "hotline": "1900 1234", "headquartersAddress": "12 Lê Lợi, Quận 1, Hồ Chí Minh", "workforceSize": "TenToThirty" }
+
+###
+
+PUT {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding/representative
+Authorization: Bearer {{CompanyToken}}
+Content-Type: application/json
+
+{ "fullName": "Trần Văn An", "jobTitle": "Giám đốc", "workEmail": "an@sachnha.vn", "phoneNumber": "0901234567", "identityNumber": "079195001234" }
+
+###
+
+PUT {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding/service-areas
+Authorization: Bearer {{CompanyToken}}
+Content-Type: application/json
+
+{ "serviceAreaIds": ["bbbbbbbb-0000-0000-0000-000000000001"] }
+
+###
+
+PUT {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding/documents/BusinessRegistration
+Authorization: Bearer {{CompanyToken}}
+Content-Type: multipart/form-data; boundary=doc
+
+--doc
+Content-Disposition: form-data; name="file"; filename="dkkd.pdf"
+Content-Type: application/pdf
+
+< ./dkkd.pdf
+--doc--
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/company/onboarding/submit
+Authorization: Bearer {{CompanyToken}}
+
+###
+
+GET {{Abstrict.Api_HostAddress}}/api/v1/admin/companies
+Authorization: Bearer {{AdminToken}}
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/admin/companies/{{CompanyProviderId}}/start-review
+Authorization: Bearer {{AdminToken}}
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/admin/companies/{{CompanyProviderId}}/decision
+Authorization: Bearer {{AdminToken}}
+Content-Type: application/json
+
+{ "decision": "Approved" }
+
+###

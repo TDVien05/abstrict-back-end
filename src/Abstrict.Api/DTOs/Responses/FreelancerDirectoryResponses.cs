@@ -1,6 +1,6 @@
 namespace Abstrict.Api.DTOs.Responses;
 
-public sealed record FreelancerServiceResponse(string Code, string Name, long HourlyRateVnd, string? Description);
+public sealed record FreelancerServiceResponse(Guid ServiceCategoryId, string Code, string Name, long HourlyRateVnd, string? Description);
 
 public sealed record FreelancerServiceAreaResponse(Guid Id, string City, string District, string? WardOrComplex, int? TravelRadiusKm);
 
