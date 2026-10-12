@@ -18,4 +18,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Reference\vietnam-divisions.json" LogicalName="vietnam-divisions.json" />
+  </ItemGroup>
+
 </Project>

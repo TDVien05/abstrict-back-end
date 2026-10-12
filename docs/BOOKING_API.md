@@ -93,6 +93,25 @@ Mặc định (cấu hình ở mục `Booking`, các giá trị chưa chốt ch�
 
 `city` và `district` phải khớp chính xác một khu vực trong `GET /catalog/service-areas` thì mới đặt được với freelancer phục vụ khu vực đó. Địa chỉ đầu tiên tự là mặc định. Xóa địa chỉ không ảnh hưởng đơn đã đặt vì đơn lưu bản chụp địa chỉ.
 
+### GET `/catalog/administrative-divisions`
+
+Public. Tỉnh/thành và quận/huyện của Việt Nam (63 tỉnh/thành, 696 quận/huyện) cho dropdown Thành phố / Quận-Huyện của form địa chỉ. Lọc theo tỉnh/thành bằng `?city=Hồ Chí Minh`.
+
+```json
+[
+  {
+    "code": 79,
+    "name": "Hồ Chí Minh",
+    "districts": [
+      { "code": 760, "name": "Quận 1", "isServed": true },
+      { "code": 783, "name": "Huyện Củ Chi", "isServed": true }
+    ]
+  }
+]
+```
+
+`name` của tỉnh/thành bỏ tiền tố "Thành phố"/"Tỉnh"; gửi `name` của tỉnh/thành và của quận/huyện lên `city` và `district` khi lưu địa chỉ. `isServed` là `true` khi nền tảng có khu vực dịch vụ đang hoạt động ở quận/huyện đó (hiện là 22 quận/huyện của TP. Hồ Chí Minh); địa chỉ ở nơi `false` vẫn lưu được nhưng chưa đặt lịch được. Response có `Cache-Control: public, max-age=3600`.
+
 ## GET `/freelancers/{providerId}/availability`
 
 Query: `from` (`YYYY-MM-DD`, mặc định hôm nay giờ VN), `days` (1–14, mặc định 7).

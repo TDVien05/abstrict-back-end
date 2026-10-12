@@ -23,6 +23,20 @@ public sealed class CatalogService(AppDbContext dbContext, IOptions<KycOptions> 
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AdministrativeProvinceResponse>> GetAdministrativeDivisionsAsync(string? city, CancellationToken cancellationToken)
+    {
+        var served = (await dbContext.ServiceAreas.AsNoTracking().Where(x => x.IsActive)
+                .Select(x => new { x.City, x.District }).Distinct().ToListAsync(cancellationToken))
+            .Select(x => (x.City, x.District)).ToHashSet();
+
+        var normalizedCity = city?.Trim();
+        return VietnamAdministrativeDivisions.All
+            .Where(p => string.IsNullOrEmpty(normalizedCity) || string.Equals(p.Name, normalizedCity, StringComparison.OrdinalIgnoreCase))
+            .Select(p => new AdministrativeProvinceResponse(p.Code, p.Name,
+                p.Districts.Select(d => new AdministrativeDistrictResponse(d.Code, d.Name, served.Contains((p.Name, d.Name)))).ToList()))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<CatalogServiceCategoryResponse>> GetServiceCategoriesAsync(CancellationToken cancellationToken) =>
         await dbContext.ServiceCategories.AsNoTracking()
             .Where(x => x.IsActive)

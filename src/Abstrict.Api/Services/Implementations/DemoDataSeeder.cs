@@ -29,11 +29,11 @@ public static class DemoDataSeeder
     [
         new("Nguyễn Thị Lan", Gender.Female, "1992-03-14", ApprovalStatus.Approved, 4.8, 42, 38, 6, "Dọn dẹp nhà cửa gọn gàng, tỉ mỉ.", [("CLEANING", 80000), ("DEEP_CLEANING", 120000)], [1, 2, 3], "12 Nguyễn Huệ, Quận 1, TP.HCM"),
         new("Trần Văn Hùng", Gender.Male, "1988-11-02", ApprovalStatus.Approved, 4.6, 25, 22, 9, "Thợ điện nước nhiều năm kinh nghiệm.", [("ELECTRICAL", 150000), ("PLUMBING", 140000)], [3, 4, 5], "45 Phạm Văn Đồng, Bình Thạnh, TP.HCM"),
-        new("Lê Thị Mai", Gender.Female, "1995-07-21", ApprovalStatus.Approved, 4.9, 61, 57, 4, "Nấu ăn gia đình, món Bắc - Nam.", [("COOKING", 100000)], [6, 7], "8 Láng Hạ, Đống Đa, Hà Nội"),
+        new("Lê Thị Mai", Gender.Female, "1995-07-21", ApprovalStatus.Approved, 4.9, 61, 57, 4, "Nấu ăn gia đình, món Bắc - Nam.", [("COOKING", 100000)], [12, 14], "8 Phan Xích Long, Phú Nhuận, TP.HCM"),
         new("Phạm Quốc Bảo", Gender.Male, "1990-01-30", ApprovalStatus.Approved, 4.3, 11, 9, 5, "Vệ sinh và bảo trì máy lạnh.", [("AC_SERVICE", 130000)], [1, 5], "99 Cộng Hòa, Tân Bình, TP.HCM"),
-        new("Võ Thị Hồng", Gender.Female, "1985-09-09", ApprovalStatus.Approved, 5.0, 8, 8, 12, "Chăm sóc người cao tuổi, có chứng chỉ điều dưỡng.", [("ELDERLY_CARE", 110000), ("CHILDCARE", 100000)], [9, 10], "3 Bạch Đằng, Hải Châu, Đà Nẵng"),
-        new("Đặng Minh Tuấn", Gender.Male, "1999-05-17", ApprovalStatus.Submitted, 0, 0, 0, 1, "Mới tham gia, nhận giặt ủi và dọn dẹp.", [("LAUNDRY", 70000), ("CLEANING", 75000)], [2], "21 Cầu Giấy, Cầu Giấy, Hà Nội"),
-        new("Hoàng Thị Thu", Gender.Female, "1993-12-25", ApprovalStatus.UnderReview, 0, 0, 0, 3, "Chăm sóc trẻ em tại nhà.", [("CHILDCARE", 95000)], [7, 8], "56 Xuân Thủy, Cầu Giấy, Hà Nội"),
+        new("Võ Thị Hồng", Gender.Female, "1985-09-09", ApprovalStatus.Approved, 5.0, 8, 8, 12, "Chăm sóc người cao tuổi, có chứng chỉ điều dưỡng.", [("ELDERLY_CARE", 110000), ("CHILDCARE", 100000)], [15, 22], "3 Võ Văn Ngân, Thủ Đức, TP.HCM"),
+        new("Đặng Minh Tuấn", Gender.Male, "1999-05-17", ApprovalStatus.Submitted, 0, 0, 0, 1, "Mới tham gia, nhận giặt ủi và dọn dẹp.", [("LAUNDRY", 70000), ("CLEANING", 75000)], [2], "21 Quang Trung, Gò Vấp, TP.HCM"),
+        new("Hoàng Thị Thu", Gender.Female, "1993-12-25", ApprovalStatus.UnderReview, 0, 0, 0, 3, "Chăm sóc trẻ em tại nhà.", [("CHILDCARE", 95000)], [16, 17], "56 Lý Thái Tổ, Quận 10, TP.HCM"),
         new("Bùi Anh Khoa", Gender.Male, "2000-08-08", ApprovalStatus.Draft, 0, 0, 0, 0, null, [], [], "17 Lý Thường Kiệt, Quận 3, TP.HCM")
     ];
 

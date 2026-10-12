@@ -27,6 +27,22 @@ public sealed class CatalogController(ICatalogService catalogService) : Controll
         Ok(await catalogService.GetServiceAreasAsync(city, cancellationToken));
 
     /// <summary>
+    /// Lấy tỉnh/thành và quận/huyện của Việt Nam.
+    /// </summary>
+    /// <remarks>
+    /// Dùng cho dropdown Thành phố / Quận-Huyện của form địa chỉ. <c>name</c> của tỉnh/thành và quận/huyện là giá trị gửi lên
+    /// <c>city</c> và <c>district</c> khi lưu địa chỉ. <c>isServed</c> là <c>true</c> khi nền tảng có khu vực dịch vụ ở quận/huyện đó
+    /// (chỉ những nơi này mới đặt lịch được). Lọc theo tên tỉnh/thành bằng <c>city</c>, ví dụ <c>?city=Hồ Chí Minh</c>.
+    /// </remarks>
+    [HttpGet("administrative-divisions")]
+    [ProducesResponseType<IReadOnlyList<AdministrativeProvinceResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AdministrativeProvinceResponse>>> GetAdministrativeDivisions([FromQuery] string? city, CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "public, max-age=3600";
+        return Ok(await catalogService.GetAdministrativeDivisionsAsync(city, cancellationToken));
+    }
+
+    /// <summary>
     /// Lấy danh sách danh mục dịch vụ.
     /// </summary>
     /// <remarks>

@@ -87,7 +87,7 @@ Response `200`:
     { "serviceCategoryId": "aaaaaaaa-0000-0000-0000-000000000006", "code": "ELDERLY_CARE", "name": "Chăm sóc người cao tuổi", "hourlyRateVnd": 110000, "description": null }
   ],
   "serviceAreas": [
-    { "id": "bbbbbbbb-0000-0000-0000-000000000009", "city": "Đà Nẵng", "district": "Hải Châu", "wardOrComplex": null, "travelRadiusKm": 10 }
+    { "id": "bbbbbbbb-0000-0000-0000-000000000015", "city": "Hồ Chí Minh", "district": "Thành phố Thủ Đức", "wardOrComplex": null, "travelRadiusKm": 10 }
   ]
 }
 ```
