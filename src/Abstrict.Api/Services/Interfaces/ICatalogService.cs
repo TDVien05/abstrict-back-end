@@ -7,4 +7,7 @@ public interface ICatalogService
     Task<IReadOnlyList<CatalogServiceAreaResponse>> GetServiceAreasAsync(string? city, CancellationToken cancellationToken);
     Task<IReadOnlyList<CatalogServiceCategoryResponse>> GetServiceCategoriesAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<CatalogBankResponse>> GetBanksAsync(CancellationToken cancellationToken);
+
+    /// <summary>Template checklist đang hiệu lực (version cao nhất) của một danh mục; <c>null</c> nếu chưa có.</summary>
+    Task<ChecklistTemplateResponse?> GetChecklistAsync(string serviceCategoryCode, CancellationToken cancellationToken);
 }

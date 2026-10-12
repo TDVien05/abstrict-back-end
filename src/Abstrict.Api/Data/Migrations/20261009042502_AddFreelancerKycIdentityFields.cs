@@ -38,7 +38,8 @@ namespace Abstrict.Api.Data.Migrations
                 name: "IX_freelancer_profiles_citizen_id_hash",
                 table: "freelancer_profiles",
                 column: "citizen_id_hash",
-                unique: true);
+                unique: true,
+                filter: "citizen_id_hash <> ''");
         }
 
         /// <inheritdoc />

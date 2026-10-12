@@ -90,7 +90,7 @@ public sealed class FreelancerDirectoryService(AppDbContext dbContext) : IFreela
                 f.Provider.IsAcceptingBookings,
                 Services = f.Provider.Services.Where(s => s.IsActive)
                     .OrderBy(s => s.ServiceCategory.Name)
-                    .Select(s => new FreelancerServiceResponse(s.ServiceCategory.Code, s.ServiceCategory.Name, s.HourlyRateVnd, s.Description)).ToList(),
+                    .Select(s => new FreelancerServiceResponse(s.ServiceCategoryId, s.ServiceCategory.Code, s.ServiceCategory.Name, s.HourlyRateVnd, s.Description)).ToList(),
                 Areas = f.Provider.ServiceAreas
                     .OrderBy(a => a.ServiceArea.City).ThenBy(a => a.ServiceArea.District)
                     .Select(a => new FreelancerServiceAreaResponse(a.ServiceAreaId, a.ServiceArea.City, a.ServiceArea.District, a.ServiceArea.WardOrComplex, a.TravelRadiusKm)).ToList()

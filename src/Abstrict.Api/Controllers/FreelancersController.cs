@@ -10,7 +10,7 @@ namespace Abstrict.Api.Controllers;
 [ApiController]
 [AllowAnonymous]
 [Route(ApiRoutes.Version1 + "/freelancers")]
-public sealed class FreelancersController(IFreelancerDirectoryService directoryService) : ControllerBase
+public sealed class FreelancersController(IFreelancerDirectoryService directoryService, IAvailabilityService availabilityService) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<PagedResponse<FreelancerSummaryResponse>>(StatusCodes.Status200OK)]
@@ -28,6 +28,28 @@ public sealed class FreelancersController(IFreelancerDirectoryService directoryS
         var freelancer = await directoryService.GetAsync(providerId, cancellationToken);
         if (freelancer is not null)
             return Ok(freelancer);
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status404NotFound,
+            Title = "FREELANCER_NOT_FOUND",
+            Detail = "Không tìm thấy freelancer."
+        };
+        problem.Extensions["code"] = "FREELANCER_NOT_FOUND";
+        problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
+        return NotFound(problem);
+    }
+
+    /// <summary>Lịch rảnh/bận của freelancer theo ngày (giờ Việt Nam); khoảng bận không kèm thông tin khách hay đơn.</summary>
+    [HttpGet("{providerId:guid}/availability")]
+    [ProducesResponseType<ProviderAvailabilityResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProviderAvailabilityResponse>> GetAvailability(
+        Guid providerId, [FromQuery] DateOnly? from, [FromQuery] int days = 7, CancellationToken cancellationToken = default)
+    {
+        var availability = await availabilityService.GetPublicAsync(providerId, from, days, cancellationToken);
+        if (availability is not null)
+            return Ok(availability);
 
         var problem = new ProblemDetails
         {

@@ -47,4 +47,30 @@ public sealed class CatalogController(ICatalogService catalogService) : Controll
     [ProducesResponseType<IReadOnlyList<CatalogBankResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<CatalogBankResponse>>> GetBanks(CancellationToken cancellationToken) =>
         Ok(await catalogService.GetBanksAsync(cancellationToken));
+
+    /// <summary>
+    /// Lấy checklist của một danh mục dịch vụ.
+    /// </summary>
+    /// <remarks>
+    /// Trả về template checklist đang hiệu lực (version cao nhất) theo mã danh mục, dùng để khách chọn phạm vi việc khi đặt lịch.
+    /// </remarks>
+    [HttpGet("service-categories/{code}/checklist")]
+    [ProducesResponseType<ChecklistTemplateResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ChecklistTemplateResponse>> GetChecklist(string code, CancellationToken cancellationToken)
+    {
+        var checklist = await catalogService.GetChecklistAsync(code, cancellationToken);
+        if (checklist is not null)
+            return Ok(checklist);
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status404NotFound,
+            Title = "CHECKLIST_NOT_FOUND",
+            Detail = "Danh mục này chưa có checklist."
+        };
+        problem.Extensions["code"] = "CHECKLIST_NOT_FOUND";
+        problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
+        return NotFound(problem);
+    }
 }
