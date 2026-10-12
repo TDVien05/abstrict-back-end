@@ -11,6 +11,8 @@ param(
     [string]$Container = 'abstrict-postgres',
     [string]$Database = 'abstrict',
     [string]$DbUser = 'abstrict',
+    # Remote Postgres (e.g. Railway public URL). When set, psql runs in a throwaway postgres:16-alpine container instead of `docker exec`.
+    [string]$ConnectionString = '',
     [int]$Days = 14,
     [string]$CustomerPhone = '0920000001',
     [string]$CustomerPassword = 'Customer-dev-2026'
@@ -57,7 +59,11 @@ $custHash = New-IdentityV3Hash $CustomerPassword
 [void]$sql.AppendLine("INSERT INTO customer_addresses (id, customer_user_id, label, apartment_number, floor, building_name, street_address, ward, district, city, access_instructions, is_default, created_at_utc, updated_at_utc) SELECT 'c0c0c0c0-0000-0000-0002-000000000001', '$custUser', 'Nhà', 'A-1205', '12', 'Vinhomes Golden River', '2 Tôn Đức Thắng', 'Bến Nghé', 'Quận 1', 'Hồ Chí Minh', 'Gọi lễ tân', true, now(), now() WHERE EXISTS (SELECT 1 FROM users WHERE id = '$custUser') ON CONFLICT DO NOTHING;")
 [void]$sql.AppendLine('COMMIT;')
 
-$sql.ToString() | docker exec -i $Container psql -U $DbUser -d $Database -v ON_ERROR_STOP=1 -q
+if ($ConnectionString) {
+    $sql.ToString() | docker run --rm -i postgres:16-alpine psql $ConnectionString -v ON_ERROR_STOP=1 -q
+} else {
+    $sql.ToString() | docker exec -i $Container psql -U $DbUser -d $Database -v ON_ERROR_STOP=1 -q
+}
 if ($LASTEXITCODE -ne 0) { throw 'Seeding failed.' }
 Write-Host "Seeded availability for 5 freelancers, $Days days from $($today.ToString('yyyy-MM-dd')) (08:00-12:00 and 13:00-18:00 Vietnam time)."
 Write-Host "Test customer: phone $CustomerPhone, password '$CustomerPassword', one address in Quan 1."

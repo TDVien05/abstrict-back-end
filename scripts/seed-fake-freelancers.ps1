@@ -8,7 +8,9 @@ param(
     [string]$Container = 'abstrict-postgres',
     [string]$Database = 'abstrict',
     [string]$DbUser = 'abstrict',
-    [string]$Password = 'Freelancer-dev-2026'
+    [string]$Password = 'Freelancer-dev-2026',
+    # Remote Postgres (e.g. Railway public URL). When set, psql runs in a throwaway postgres:16-alpine container instead of `docker exec`.
+    [string]$ConnectionString = ''
 )
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
@@ -74,6 +76,10 @@ for ($i = 0; $i -lt $people.Count; $i++) {
 }
 [void]$sql.AppendLine('COMMIT;')
 
-$sql.ToString() | docker exec -i $Container psql -U $DbUser -d $Database -v ON_ERROR_STOP=1
+if ($ConnectionString) {
+    $sql.ToString() | docker run --rm -i postgres:16-alpine psql $ConnectionString -v ON_ERROR_STOP=1
+} else {
+    $sql.ToString() | docker exec -i $Container psql -U $DbUser -d $Database -v ON_ERROR_STOP=1
+}
 if ($LASTEXITCODE -ne 0) { throw 'Seeding failed.' }
 Write-Host "Seeded $($people.Count) fake freelancers (phones 0910000001..0910000008, password '$Password')."
