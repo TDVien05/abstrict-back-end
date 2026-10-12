@@ -11,3 +11,5 @@ appsettings.Local.json
 .dotnet-cli/
 src/Abstrict.Api/App_Data/
 .commandcode/
+
+.claude/settings.local.json

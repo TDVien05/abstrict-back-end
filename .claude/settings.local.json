@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git add *)",
-      "Bash(git commit -m 'feat: add CatalogDataSeeder to ensure freelancer catalog data is populated on startup *)"
-    ]
-  }
-}

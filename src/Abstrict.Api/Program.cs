@@ -198,7 +198,6 @@ if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
     await using var seedScope = app.Services.CreateAsyncScope();
     await AdminAccountSeeder.SeedAsync(seedScope.ServiceProvider, builder.Configuration, app.Logger);
-    await CatalogDataSeeder.SeedAsync(seedScope.ServiceProvider, app.Logger);
 }
 
 app.Run();
