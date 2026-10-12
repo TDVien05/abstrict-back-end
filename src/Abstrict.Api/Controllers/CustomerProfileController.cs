@@ -13,8 +13,16 @@ namespace Abstrict.Api.Controllers;
 [ApiController]
 [Authorize(Roles = nameof(UserRole.Customer))]
 [Route(ApiRoutes.Version1 + "/customer/profile")]
-public sealed class CustomerProfileController(ICustomerAvatarService avatarService) : BookingControllerBase
+public sealed class CustomerProfileController(ICustomerAvatarService avatarService, ICustomerProfileService profileService) : BookingControllerBase
 {
+    /// <summary>Hồ sơ của tôi kèm sổ địa chỉ (địa chỉ mặc định đứng đầu).</summary>
+    /// <remarks>Thêm, sửa, xóa địa chỉ dùng <c>/customer/addresses</c>; gọi lại endpoint này để lấy hồ sơ mới nhất.</remarks>
+    [HttpGet]
+    [ProducesResponseType<CustomerProfileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CustomerProfileResponse>> Get(CancellationToken cancellationToken) =>
+        await Run(async () => await profileService.GetAsync(CurrentUserId, cancellationToken));
+
     /// <summary>Tải lên hoặc thay ảnh đại diện.</summary>
     /// <remarks>
     /// Gửi <c>multipart/form-data</c> với trường <c>file</c> là ảnh JPG hoặc PNG, tối đa 5 MB.

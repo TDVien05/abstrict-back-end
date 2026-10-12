@@ -11,7 +11,11 @@ public sealed class CustomerAddressService(AppDbContext dbContext, TimeProvider 
 {
     public const int MaximumAddresses = 10;
 
-    public async Task<IReadOnlyList<CustomerAddressResponse>> ListAsync(Guid userId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<CustomerAddressResponse>> ListAsync(Guid userId, CancellationToken cancellationToken) =>
+        LoadAsync(dbContext, userId, cancellationToken);
+
+    /// <summary>Địa chỉ của khách, mặc định đứng đầu. Dùng chung cho sổ địa chỉ và hồ sơ.</summary>
+    public static async Task<IReadOnlyList<CustomerAddressResponse>> LoadAsync(AppDbContext dbContext, Guid userId, CancellationToken cancellationToken)
     {
         var addresses = await dbContext.CustomerAddresses.AsNoTracking()
             .Where(x => x.CustomerUserId == userId)

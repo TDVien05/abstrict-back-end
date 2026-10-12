@@ -89,6 +89,7 @@ builder.Services.AddSingleton<IPaymentGateway, SandboxPaymentGateway>();
 builder.Services.AddScoped<BookingWorkflow>();
 builder.Services.AddScoped<ICustomerAddressService, CustomerAddressService>();
 builder.Services.AddScoped<ICustomerAvatarService, CustomerAvatarService>();
+builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();

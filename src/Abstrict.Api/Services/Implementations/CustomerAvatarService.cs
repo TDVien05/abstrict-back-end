@@ -82,8 +82,8 @@ public sealed class CustomerAvatarService(AppDbContext dbContext, IFileStorage f
     public static string? BuildAvatarUrl(CustomerProfile profile) =>
         profile.AvatarObjectKey is null ? null : $"{AvatarRoute}?v={profile.UpdatedAtUtc.ToUnixTimeMilliseconds()}";
 
-    public static CustomerProfileResponse ToProfileResponse(User user, CustomerProfile profile) =>
-        new(user.Id, profile.FullName, user.PhoneNumber, BuildAvatarUrl(profile), profile.CreatedAtUtc);
+    public static CustomerProfileResponse ToProfileResponse(User user, CustomerProfile profile, IReadOnlyList<CustomerAddressResponse> addresses) =>
+        new(user.Id, profile.FullName, user.PhoneNumber, BuildAvatarUrl(profile), profile.CreatedAtUtc, addresses);
 
     private static CustomerAvatarResponse ToResponse(CustomerProfile profile) =>
         new(BuildAvatarUrl(profile)!, profile.UpdatedAtUtc);

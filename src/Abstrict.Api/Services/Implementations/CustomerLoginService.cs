@@ -122,7 +122,8 @@ public sealed class CustomerLoginService(
         return new CustomerLoginResponse(new JwtSecurityTokenHandler().WriteToken(token), "Bearer", expiresAt,
             user.Id, user.CustomerProfile?.FullName ?? string.Empty, user.PhoneNumber, user.Role.ToString(),
             user.Role == UserRole.Customer && user.CustomerProfile is { } profile
-                ? CustomerAvatarService.ToProfileResponse(user, profile)
+                ? CustomerAvatarService.ToProfileResponse(user, profile,
+                    await CustomerAddressService.LoadAsync(dbContext, user.Id, cancellationToken))
                 : null,
             user.Role == UserRole.Freelancer ? await BuildOnboardingAsync(user.Id, cancellationToken) : null,
             user.Role == UserRole.Company ? await CompanyOnboardingService.SummarizeAsync(dbContext, user.Id, cancellationToken) : null);
