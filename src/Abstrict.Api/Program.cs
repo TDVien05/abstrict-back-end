@@ -199,6 +199,8 @@ if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
     await using var seedScope = app.Services.CreateAsyncScope();
     await AdminAccountSeeder.SeedAsync(seedScope.ServiceProvider, builder.Configuration, app.Logger);
+    if (builder.Configuration.GetValue<bool>("Demo:SeedFreelancers"))
+        await DemoDataSeeder.SeedAsync(seedScope.ServiceProvider, builder.Configuration, app.Logger);
 }
 
 app.Run();

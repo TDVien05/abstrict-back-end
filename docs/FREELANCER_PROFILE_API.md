@@ -101,4 +101,4 @@ Lỗi:
 
 ## Dữ liệu mẫu
 
-`scripts/seed-fake-freelancers.ps1` tạo 8 freelancer giả (5 Approved, 1 Submitted, 1 UnderReview, 1 Draft), số `0910000001`-`0910000008`. Chỉ 5 người Approved xuất hiện trong các API trên.
+`scripts/seed-fake-freelancers.ps1` tạo 8 freelancer giả (5 Approved, 1 Submitted, 1 UnderReview, 1 Draft), số `0910000001`-`0910000008`. Trên môi trường không có Docker (ví dụ Railway), đặt `Demo__SeedFreelancers=true` và `Demo__SeedPassword=<>=12 ký tự>` để app tự tạo cùng dữ liệu này, kèm lịch rảnh 14 ngày cho 5 người đã duyệt và khách thử `0920000001`, khi khởi động. Idempotent, mỗi lần khởi động lại kéo dài lịch rảnh; cờ mặc định tắt. Chỉ 5 người Approved xuất hiện trong các API trên.
