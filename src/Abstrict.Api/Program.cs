@@ -66,6 +66,14 @@ builder.Services.AddDataProtection()
     .SetApplicationName("abstrict")
     .PersistKeysToFileSystem(new DirectoryInfo(builder.Configuration["DataProtection:KeysPath"]
         ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys")));
+var enableKycHash = builder.Configuration.GetValue<bool>("Kyc:EnableHash");
+var kycHashKey = builder.Configuration["Kyc:CitizenIdHashKey"];
+
+if (enableKycHash && string.IsNullOrWhiteSpace(kycHashKey))
+{
+    throw new InvalidOperationException(
+        "Kyc:CitizenIdHashKey must be configured when KYC hashing is enabled.");
+}
 builder.Services.AddSingleton(serviceProvider => new CitizenIdProtector(
     serviceProvider.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(), kycHashKey));
 builder.Services.AddScoped<IFreelancerKycService, FreelancerKycService>();
