@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Abstrict.Api.Services.Implementations;
 
-public sealed class CatalogService(AppDbContext dbContext, IOptions<KycOptions> options) : ICatalogService
+public sealed class CatalogService(AppDbContext dbContext, IOptions<KycOptions> options, AdministrativeDirectory administrativeDirectory) : ICatalogService
 {
     private readonly KycOptions _kyc = options.Value;
 
@@ -30,11 +30,18 @@ public sealed class CatalogService(AppDbContext dbContext, IOptions<KycOptions> 
             .Select(x => (x.City, x.District)).ToHashSet();
 
         var normalizedCity = city?.Trim();
-        return VietnamAdministrativeDivisions.All
+        var snapshot = await administrativeDirectory.GetAsync(cancellationToken);
+        return snapshot.Provinces
             .Where(p => string.IsNullOrEmpty(normalizedCity) || string.Equals(p.Name, normalizedCity, StringComparison.OrdinalIgnoreCase))
             .Select(p => new AdministrativeProvinceResponse(p.Code, p.Name,
                 p.Districts.Select(d => new AdministrativeDistrictResponse(d.Code, d.Name, served.Contains((p.Name, d.Name)))).ToList()))
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<AdministrativeWardResponse>?> GetWardsAsync(int provinceCode, int districtCode, CancellationToken cancellationToken)
+    {
+        var district = (await administrativeDirectory.GetAsync(cancellationToken)).FindDistrict(provinceCode, districtCode);
+        return district?.Wards.Select(w => new AdministrativeWardResponse(w.Code, w.Name)).ToList();
     }
 
     public async Task<IReadOnlyList<CatalogServiceCategoryResponse>> GetServiceCategoriesAsync(CancellationToken cancellationToken) =>
