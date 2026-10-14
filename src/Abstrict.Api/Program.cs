@@ -16,6 +16,7 @@ using System.Reflection;
 using System.Threading.RateLimiting;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,6 +81,14 @@ builder.Services.AddScoped<IFreelancerKycService, FreelancerKycService>();
 builder.Services.AddScoped<IAdminKycService, AdminKycService>();
 builder.Services.AddScoped<IFreelancerDirectoryService, FreelancerDirectoryService>();
 builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
+builder.Services.Configure<AddressKitOptions>(builder.Configuration.GetSection(AddressKitOptions.SectionName));
+builder.Services.AddHttpClient(AddressKitOptions.HttpClientName, (serviceProvider, client) =>
+{
+    var addressKit = serviceProvider.GetRequiredService<IOptions<AddressKitOptions>>().Value;
+    client.BaseAddress = new Uri(addressKit.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(5, addressKit.TimeoutSeconds));
+});
+builder.Services.AddSingleton<AdministrativeDirectory>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<ICompanyOnboardingService, CompanyOnboardingService>();
 builder.Services.AddScoped<IAdminCompanyReviewService, AdminCompanyReviewService>();

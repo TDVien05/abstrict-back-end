@@ -95,7 +95,7 @@ Mặc định (cấu hình ở mục `Booking`, các giá trị chưa chốt ch�
 
 ### GET `/catalog/administrative-divisions`
 
-Public. Tỉnh/thành và quận/huyện của Việt Nam (63 tỉnh/thành, 696 quận/huyện) cho dropdown Thành phố / Quận-Huyện của form địa chỉ. Lọc theo tỉnh/thành bằng `?city=Hồ Chí Minh`.
+Public. Tỉnh/thành và quận/huyện của Việt Nam cho dropdown Thành phố / Quận-Huyện của form địa chỉ. Lọc theo tỉnh/thành bằng `?city=Hồ Chí Minh`.
 
 ```json
 [
@@ -111,6 +111,14 @@ Public. Tỉnh/thành và quận/huyện của Việt Nam (63 tỉnh/thành, 696
 ```
 
 `name` của tỉnh/thành bỏ tiền tố "Thành phố"/"Tỉnh"; gửi `name` của tỉnh/thành và của quận/huyện lên `city` và `district` khi lưu địa chỉ. `isServed` là `true` khi nền tảng có khu vực dịch vụ đang hoạt động ở quận/huyện đó (hiện là 22 quận/huyện của TP. Hồ Chí Minh); địa chỉ ở nơi `false` vẫn lưu được nhưng chưa đặt lịch được. Response có `Cache-Control: public, max-age=3600`.
+
+### GET `/catalog/administrative-divisions/provinces/{provinceCode}/districts/{districtCode}/wards`
+
+Public. Phường/xã của một quận/huyện, ví dụ `/provinces/79/districts/760/wards` → `[{ "code": "26734", "name": "Phường Tân Định" }, …]`. Gửi `name` lên `ward` khi lưu địa chỉ. Mã quận/huyện chỉ duy nhất trong một tỉnh (một số mã xuất hiện ở nhiều tỉnh) nên luôn truyền kèm mã tỉnh. Mã không có trả 404 `DISTRICT_NOT_FOUND`; trả `[]` khi chưa tải được dữ liệu phường/xã, lúc đó FE cho nhập tay.
+
+**Nguồn dữ liệu.** Server lấy danh mục từ [Cas AddressKit](https://addresskit.cas.so/) (dữ liệu Cục Thống kê) và giữ trong bộ nhớ 24 giờ, FE không gọi thẳng sang AddressKit (có giới hạn tốc độ). Nếu AddressKit lỗi, server giữ bản đã tải trước đó; chưa tải được lần nào thì trả danh mục nhúng (63 tỉnh và quận/huyện, không có phường/xã) và thử lại sau 5 phút.
+
+**Ngày hiệu lực.** Từ 1/7/2025 cả nước bỏ cấp quận/huyện, bản `latest` của AddressKit chỉ có 34 tỉnh và xã/phường (TP.HCM mới đã gồm cả Bình Dương và Bà Rịa - Vũng Tàu). Hệ thống đặt lịch vẫn theo quận/huyện nên mặc định dùng danh mục ngày `2025-06-30` (3 cấp). Đổi bằng cấu hình `AddressKit:EffectiveDate`; đặt `latest` thì danh sách quận/huyện sẽ rỗng và cần chuyển khu vực dịch vụ sang phường/xã.
 
 ## GET `/freelancers/{providerId}/availability`
 

@@ -43,6 +43,36 @@ public sealed class CatalogController(ICatalogService catalogService) : Controll
     }
 
     /// <summary>
+    /// Lấy phường/xã của một quận/huyện.
+    /// </summary>
+    /// <remarks>
+    /// <c>provinceCode</c> và <c>districtCode</c> lấy từ <c>GET /catalog/administrative-divisions</c> (mã quận/huyện chỉ duy nhất trong một tỉnh). <c>name</c> là giá trị gửi lên <c>ward</c> khi lưu địa chỉ.
+    /// Trả mảng rỗng khi chưa tải được dữ liệu phường/xã; khi đó FE cho nhập tay.
+    /// </remarks>
+    [HttpGet("administrative-divisions/provinces/{provinceCode:int}/districts/{districtCode:int}/wards")]
+    [ProducesResponseType<IReadOnlyList<AdministrativeWardResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<AdministrativeWardResponse>>> GetWards(int provinceCode, int districtCode, CancellationToken cancellationToken)
+    {
+        var wards = await catalogService.GetWardsAsync(provinceCode, districtCode, cancellationToken);
+        if (wards is not null)
+        {
+            Response.Headers.CacheControl = "public, max-age=3600";
+            return Ok(wards);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status404NotFound,
+            Title = "DISTRICT_NOT_FOUND",
+            Detail = "Không tìm thấy quận/huyện."
+        };
+        problem.Extensions["code"] = "DISTRICT_NOT_FOUND";
+        problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
+        return NotFound(problem);
+    }
+
+    /// <summary>
     /// Lấy danh sách danh mục dịch vụ.
     /// </summary>
     /// <remarks>
