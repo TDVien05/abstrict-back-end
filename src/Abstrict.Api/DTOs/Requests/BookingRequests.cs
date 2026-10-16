@@ -82,6 +82,19 @@ public sealed class RejectBookingRequest
     public string? Reason { get; init; }
 }
 
+/// <summary>Token quét từ QR check-in do khách hiển thị; ngắn hạn và dùng một lần.</summary>
+public sealed class CheckInRequest
+{
+    [Required, StringLength(128, MinimumLength = 8)]
+    public string Token { get; init; } = string.Empty;
+}
+
+/// <summary>Trạng thái mới cho một mục checklist trong ca; chỉ nhận Pending, InProgress hoặc Completed.</summary>
+public sealed class UpdateBookingTaskStatusRequest
+{
+    public BookingTaskStatus Status { get; init; }
+}
+
 public sealed class SandboxPaymentResultRequest
 {
     public bool Succeeded { get; init; }

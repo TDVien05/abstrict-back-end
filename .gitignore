@@ -13,3 +13,4 @@ src/Abstrict.Api/App_Data/
 .commandcode/
 
 .claude/settings.local.json
+.codegraph/

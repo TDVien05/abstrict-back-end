@@ -1,10 +1,10 @@
 # Booking API
 
-Luồng đặt lịch của khách hàng với freelancer: địa chỉ → lịch rảnh → báo giá → tạo đơn giữ chỗ → đặt cọc 15% → freelancer xác nhận → xem/hủy đơn → mã QR check-in.
+Luồng đặt lịch của khách hàng với freelancer: địa chỉ → lịch rảnh → báo giá → tạo đơn giữ chỗ → đặt cọc 15% → freelancer xác nhận → mã QR check-in → freelancer check-in → ảnh tiến độ (Before/After) và cập nhật checklist → hoàn tất ca.
 
 Base URL: `/api/v1`. Lỗi trả `ProblemDetails` kèm `code` và `traceId`. Mọi thời điểm là UTC (ISO 8601); ngày lịch tính theo `Asia/Ho_Chi_Minh`. Tiền là số nguyên VND và luôn do server tính.
 
-Chưa hỗ trợ: đối tác công ty, quét QR, checklist trong ca, ảnh, nghiệm thu, gia hạn, đánh giá, khiếu nại, cổng thanh toán thật.
+Chưa hỗ trợ: đối tác công ty, nghiệm thu phía khách, gia hạn ca, đánh giá, khiếu nại, cổng thanh toán thật.
 
 ## Tổng hợp endpoint
 
@@ -35,6 +35,12 @@ Chưa hỗ trợ: đối tác công ty, quét QR, checklist trong ca, ảnh, ngh
 | GET | `/freelancer/bookings/{id}` | Freelancer | Chi tiết đơn. |
 | POST | `/freelancer/bookings/{id}/confirm` | Freelancer | Xác nhận đơn. |
 | POST | `/freelancer/bookings/{id}/reject` | Freelancer | Từ chối đơn, khách được hoàn đủ cọc. |
+| POST | `/freelancer/bookings/{id}/check-in` | Freelancer | Quét mã QR check-in của khách, bắt đầu ca. |
+| PATCH | `/freelancer/bookings/{id}/tasks/{taskId}` | Freelancer | Đổi trạng thái một mục checklist trong ca. |
+| POST | `/freelancer/bookings/{id}/photos` | Freelancer | Tải ảnh tiến độ Before/After (`multipart/form-data`). |
+| GET | `/freelancer/bookings/{id}/photos/{photoId}/content` | Freelancer | Nội dung ảnh tiến độ. |
+| POST | `/freelancer/bookings/{id}/complete` | Freelancer | Hoàn tất ca, chờ khách nghiệm thu. |
+| GET | `/bookings/{id}/photos/{photoId}/content` | Customer | Nội dung ảnh tiến độ của đơn tôi đặt. |
 
 Các endpoint ghi (tạo đơn, đặt cọc, chốt sandbox, hủy, lấy mã QR, sửa địa chỉ, sửa lịch rảnh, xác nhận/từ chối) dùng chung giới hạn 30 request / 10 phút / người dùng (429 khi vượt). `POST /bookings/quote` và mọi endpoint GET **không** tính vào giới hạn này, nên FE gọi lại báo giá thoải mái.
 
@@ -70,7 +76,7 @@ PendingDeposit ──cọc thành công──▶ PendingProviderConfirmation ─
                                       │ khách hủy → Cancelled (hoàn đủ)
 ```
 
-Freelancer bật tự nhận đơn thì cọc thành công chuyển thẳng sang `Confirmed`. FE nên dựa vào `allowedActions` thay vì tự suy luận từ `status`: phía khách là `PayDeposit`, `Cancel`, `ShowCheckInQr` (trong chi tiết đơn); phía freelancer là `Confirm`, `Reject` (trong cả danh sách và chi tiết).
+Freelancer bật tự nhận đơn thì cọc thành công chuyển thẳng sang `Confirmed`. Sau đó: freelancer quét mã check-in → `CheckedIn`; ảnh Before đầu tiên → `InProgress`; hoàn tất ca (có ảnh After) → `PendingAcceptance`. FE nên dựa vào `allowedActions` thay vì tự suy luận từ `status`: phía khách là `PayDeposit`, `Cancel`, `ShowCheckInQr` (trong chi tiết đơn); phía freelancer là `Confirm`, `Reject`, `CheckIn`, `UploadPhotos`, `CompleteWork` (trong cả danh sách và chi tiết).
 
 Mặc định (cấu hình ở mục `Booking`, các giá trị chưa chốt chính sách có `TODO: POLICY` trong `BookingOptions`): bước giờ 30 phút, ca 2–12 giờ, đặt trước 60 phút đến 30 ngày, giữ chỗ 15 phút, freelancer có 30 phút để xác nhận, mỗi khách tối đa 3 đơn đang chờ cọc.
 
@@ -229,6 +235,9 @@ Giá gốc = đơn giá theo giờ × thời lượng. Cọc = 15% giá gốc, l
 | `AutoConfirmed` | Đặt cọc thành công và người làm bật tự nhận đơn. |
 | `ProviderConfirmed` | Người làm xác nhận. |
 | `ProviderRejected` | Người làm từ chối (`note` là lý do nếu có). |
+| `CheckedIn` | Người làm quét mã QR check-in, bắt đầu ca. |
+| `WorkStarted` | Người làm tải ảnh Before đầu tiên. |
+| `WorkFinished` | Người làm hoàn tất ca, chờ khách nghiệm thu. |
 | `CustomerCancelled` | Khách hủy (`note` là lý do nếu có). |
 | `HoldExpired` | Hết thời gian giữ chỗ khi chưa cọc. |
 | `ConfirmationExpired` | Người làm không phản hồi trước hạn. |
@@ -278,6 +287,24 @@ Hiện chỉ có cổng giả lập. Để chốt kết quả, gọi `POST /paym
 
 `POST /bookings/{id}/check-in-token` trả `{ "token": "…", "expiresAtUtc": "…", "serverTimeUtc": "…" }` (`serverTimeUtc` để hiệu chỉnh đồng hồ đếm ngược). Chỉ dùng được khi đơn `Confirmed` và trong khoảng từ 30 phút trước giờ bắt đầu đến giờ kết thúc. Mã sống 120 giây; lấy mã mới làm mã cũ hết hạn ngay. FE tự vẽ QR từ `token` và gọi lại khi sắp hết hạn. Server chỉ lưu hash của mã.
 
+## Check-in, ảnh tiến độ và hoàn tất ca (phía freelancer)
+
+### POST `/freelancer/bookings/{id}/check-in`
+
+Body `{ "token": "…" }` — token quét từ QR của khách. Chỉ nhận khi đơn `Confirmed` và trong khung check-in (từ 30 phút trước giờ bắt đầu đến giờ kết thúc). Token dùng một lần; hết hạn hoặc đã dùng trả 409. Thành công: đơn chuyển `CheckedIn`, lưu `checkedInAtUtc`, thông báo khách.
+
+### PATCH `/freelancer/bookings/{id}/tasks/{taskId}`
+
+Body `{ "status": "Completed" }` — chỉ nhận `Pending`, `InProgress`, `Completed`. Chỉ đổi được khi đơn `CheckedIn` hoặc `InProgress`. Đặt `Completed` ghi `completedAtUtc`; các trạng thái khác xóa mốc này. Mục không thuộc đơn trả 404 `BOOKING_TASK_NOT_FOUND`.
+
+### POST `/freelancer/bookings/{id}/photos`
+
+`multipart/form-data` gồm `file` (JPG/PNG thật, ≤ 5 MB, nhận diện bằng magic bytes), `type` (`Before` hoặc `After`), `bookingTaskId` (tùy chọn, gắn ảnh vào một mục checklist) và `caption` (tùy chọn, ≤ 300 ký tự). Chỉ tải được khi đơn `CheckedIn` hoặc `InProgress`. **Ảnh `Before` đầu tiên** chuyển đơn sang `InProgress` và thông báo khách. Ảnh lưu ngoài `wwwroot`, chỉ phát qua endpoint có phân quyền; `photos[].contentUrl` trong chi tiết đơn là đường dẫn tương đối cần access token.
+
+### POST `/freelancer/bookings/{id}/complete`
+
+Không body. Chỉ nhận khi đơn `CheckedIn` hoặc `InProgress` **và đã có ít nhất một ảnh `After`** (nếu chưa có trả 409 `AFTER_PHOTO_REQUIRED`). Không bắt buộc mọi mục checklist đã `Completed`. Thành công: đơn chuyển `PendingAcceptance` (lý do `WorkFinished`) và thông báo khách chờ nghiệm thu.
+
 ## Phía freelancer
 
 - `POST /freelancer/availability` body `{ "startsAtUtc": "…", "endsAtUtc": "…" }`: theo bước 30 phút, tối thiểu 2 giờ, ở tương lai, không chồng khoảng rảnh khác. Chỉ hồ sơ đã duyệt.
@@ -285,7 +312,7 @@ Hiện chỉ có cổng giả lập. Để chốt kết quả, gọi `POST /paym
 - `DELETE /freelancer/availability/{id}`: không xóa được khi có đơn đang chiếm chỗ trong khoảng đó.
 - `GET /freelancer/bookings`: không gồm đơn chưa từng có cọc. Trả `customerName`, `areaLabel` ("Quận 1, Hồ Chí Minh"), hạn xác nhận và `allowedActions`.
 - `GET /freelancer/bookings/{id}`: `addressSnapshot` chỉ có giá trị từ khi đơn `Confirmed`; trước đó là `null`. Không bao giờ có số điện thoại khách. Có `allowedActions`, `timeline` và `serverTimeUtc`.
-- `allowedActions` phía freelancer: `Confirm` và `Reject` khi đơn `PendingProviderConfirmation`; quá hạn xác nhận thì chỉ còn `Reject` cho tới khi job chuyển đơn sang `Expired`. Các trạng thái khác trả mảng rỗng.
+- `allowedActions` phía freelancer: `Confirm` và `Reject` khi đơn `PendingProviderConfirmation`; quá hạn xác nhận thì chỉ còn `Reject` cho tới khi job chuyển đơn sang `Expired`. `CheckIn` khi đơn `Confirmed` và trong khung check-in. `UploadPhotos` và `CompleteWork` khi đơn `CheckedIn` hoặc `InProgress`. Các trạng thái khác trả mảng rỗng.
 - `GET /freelancer/bookings/counts`: số đơn theo từng trạng thái cho các tab, cùng phạm vi với danh sách (không có `PendingDeposit`):
 
   ```json
@@ -319,6 +346,14 @@ Hiện chỉ có cổng giả lập. Để chốt kết quả, gọi `POST /paym
 | 409 | `BOOKING_NOT_CANCELLABLE` | Đơn không còn hủy được. |
 | 409 | `CONFIRMATION_EXPIRED` | Freelancer xác nhận sau hạn. |
 | 409 | `CHECK_IN_NOT_OPEN` | Chưa tới hoặc đã qua khung giờ check-in. |
+| 409 | `CHECK_IN_TOKEN_INVALID` / `CHECK_IN_TOKEN_EXPIRED` | Token check-in không hợp lệ, đã dùng hoặc hết hạn. |
+| 409 | `AFTER_PHOTO_REQUIRED` | Hoàn tất ca khi chưa có ảnh After. |
+| 400 | `INVALID_TASK_STATUS` | Trạng thái mục checklist không hợp lệ (chỉ `Pending`/`InProgress`/`Completed`). |
+| 400 | `INVALID_PHOTO_TYPE` | Loại ảnh không phải `Before`/`After`. |
+| 400 | `EMPTY_FILE` | Tệp ảnh rỗng. |
+| 413 | `FILE_TOO_LARGE` | Ảnh vượt 5 MB. |
+| 415 | `UNSUPPORTED_IMAGE` | Tệp không phải JPG/PNG thật. |
+| 404 | `BOOKING_TASK_NOT_FOUND`, `BOOKING_PHOTO_NOT_FOUND` | Không tìm thấy mục checklist hoặc ảnh trong đơn. |
 | 409 | `PROVIDER_NOT_APPROVED`, `AVAILABILITY_OVERLAP`, `AVAILABILITY_IN_USE` | Lỗi khi freelancer quản lý lịch rảnh. |
 
 ## Dữ liệu thử
@@ -347,7 +382,7 @@ powershell -File scripts/seed-booking-fixtures.ps1    # lịch rảnh 08-12h và
 | 7 | Giới hạn request cho báo giá | `POST /bookings/quote` không bị giới hạn tần suất. |
 | 8 | Danh sách giá trị | `role`: `Customer`, `Freelancer`, `Company`, `Admin`. `timeline[].reason`: bảng mã ở mục "Chi tiết đơn". `status` trong query: tên enum dạng chuỗi, đã thử ở cả hai phía. |
 | 9 | Tài khoản khách hàng thử | Xong: `0920000001` trong `seed-booking-fixtures.ps1`. |
-| 10 | Các bước sau `Confirmed` | Chưa làm, thuộc giai đoạn sau. |
+| 10 | Các bước sau `Confirmed` | Xong: check-in QR, ảnh Before/After, cập nhật checklist, hoàn tất ca (→ `PendingAcceptance`). Còn lại: nghiệm thu phía khách (→ `Completed`) và gia hạn ca. |
 | 11 | Cổng thanh toán thật | Chưa làm, PSP chưa chốt. `/payments/sandbox/*` trả 404 khi `Payments:SandboxEnabled` tắt. |
 | 12 | Cải thiện nhỏ | Xong: `serverTimeUtc` (chi tiết đơn, mã QR), `GET /freelancer/bookings/counts`, `customerProfile.avatarUrl` trong login. Chưa có: kênh đẩy SSE/WebSocket (FE tiếp tục gọi lại định kỳ), hạng thành viên (chưa có trong mô hình dữ liệu). |
 

@@ -72,6 +72,16 @@ public sealed record BookingSummaryResponse(
 
 public sealed record BookingTaskResponse(Guid Id, string AreaName, string Description, int SortOrder, BookingTaskStatus Status);
 
+/// <summary>Ảnh tiến độ gắn booking; <c>ContentUrl</c> là đường dẫn tương đối cần access token để tải nội dung.</summary>
+public sealed record BookingPhotoResponse(
+    Guid Id,
+    BookingPhotoType Type,
+    Guid? BookingTaskId,
+    string? Caption,
+    DateTimeOffset TakenAtUtc,
+    Guid UploadedByUserId,
+    string ContentUrl);
+
 /// <summary><c>Reason</c> là mã ổn định (Created, DepositPaid, …); <c>Note</c> là ghi chú tự do của người hủy/từ chối.</summary>
 public sealed record BookingTimelineEntryResponse(BookingStatus FromStatus, BookingStatus ToStatus, string? Reason, string? Note, DateTimeOffset AtUtc);
 
@@ -104,7 +114,8 @@ public sealed record BookingDetailResponse(
     IReadOnlyCollection<BookingTaskResponse> Tasks,
     IReadOnlyCollection<BookingTimelineEntryResponse> Timeline,
     IReadOnlyCollection<BookingAction> AllowedActions,
-    DateTimeOffset ServerTimeUtc);
+    DateTimeOffset ServerTimeUtc,
+    IReadOnlyCollection<BookingPhotoResponse> Photos);
 
 public sealed record DepositPaymentResponse(
     Guid PaymentId,
@@ -122,7 +133,7 @@ public sealed record CancellationPreviewResponse(
 
 public sealed record CheckInTokenResponse(string Token, DateTimeOffset ExpiresAtUtc, DateTimeOffset ServerTimeUtc);
 
-public enum FreelancerBookingAction { Confirm, Reject }
+public enum FreelancerBookingAction { Confirm, Reject, CheckIn, UploadPhotos, CompleteWork }
 
 /// <summary>Số đơn theo từng trạng thái; trạng thái không có đơn vẫn xuất hiện với giá trị 0.</summary>
 public sealed record FreelancerBookingCountsResponse(IReadOnlyDictionary<BookingStatus, int> Counts, int Total);
@@ -161,4 +172,5 @@ public sealed record FreelancerBookingDetailResponse(
     IReadOnlyCollection<BookingTaskResponse> Tasks,
     IReadOnlyCollection<BookingTimelineEntryResponse> Timeline,
     IReadOnlyCollection<FreelancerBookingAction> AllowedActions,
-    DateTimeOffset ServerTimeUtc);
+    DateTimeOffset ServerTimeUtc,
+    IReadOnlyCollection<BookingPhotoResponse> Photos);

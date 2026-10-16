@@ -14,4 +14,7 @@ public interface IBookingService
     Task<CancellationPreviewResponse> PreviewCancellationAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken);
     Task<BookingDetailResponse> CancelAsync(Guid userId, Guid bookingId, string? reason, CancellationToken cancellationToken);
     Task<CheckInTokenResponse> IssueCheckInTokenAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken);
+    Task<BookingPhotoContent?> OpenPhotoAsync(Guid userId, Guid bookingId, Guid photoId, CancellationToken cancellationToken);
 }
+
+public sealed record BookingPhotoContent(Stream Stream, string ContentType);
