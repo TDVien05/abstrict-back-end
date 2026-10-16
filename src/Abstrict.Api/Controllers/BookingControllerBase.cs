@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Abstrict.Api.Services.Implementations;
+using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Abstrict.Api.Controllers;
@@ -34,6 +35,13 @@ public abstract class BookingControllerBase : ControllerBase
         {
             return ToProblem(exception);
         }
+    }
+
+    protected IActionResult ImageFile(BookingPhotoContent content)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(content.Stream, content.ContentType);
     }
 
     protected ObjectResult ToProblem(BookingFlowException exception)

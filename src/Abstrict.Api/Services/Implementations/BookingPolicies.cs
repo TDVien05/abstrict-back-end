@@ -159,7 +159,9 @@ public static class BookingStateMachine
             [BookingStatus.PendingProviderConfirmation, BookingStatus.Confirmed, BookingStatus.Expired, BookingStatus.Cancelled],
         [BookingStatus.PendingProviderConfirmation] =
             [BookingStatus.Confirmed, BookingStatus.Rejected, BookingStatus.Expired, BookingStatus.Cancelled],
-        [BookingStatus.Confirmed] = [BookingStatus.Cancelled]
+        [BookingStatus.Confirmed] = [BookingStatus.Cancelled, BookingStatus.CheckedIn],
+        [BookingStatus.CheckedIn] = [BookingStatus.InProgress, BookingStatus.PendingAcceptance],
+        [BookingStatus.InProgress] = [BookingStatus.PendingAcceptance]
     };
 
     public static bool CanTransition(BookingStatus from, BookingStatus to) =>
@@ -181,7 +183,38 @@ public static class BookingTimelineReasons
     public const string AutoConfirmed = "AutoConfirmed";
     public const string ProviderConfirmed = "ProviderConfirmed";
     public const string ProviderRejected = "ProviderRejected";
+    public const string CheckedIn = "CheckedIn";
+    public const string WorkStarted = "WorkStarted";
+    public const string WorkFinished = "WorkFinished";
     public const string CustomerCancelled = "CustomerCancelled";
     public const string HoldExpired = "HoldExpired";
     public const string ConfirmationExpired = "ConfirmationExpired";
+}
+
+/// <summary>Điều kiện để người làm hoàn tất ca: ca đang diễn ra và đã có ảnh sau khi làm xong.</summary>
+public static class BookingCompletionPolicy
+{
+    public static void EnsureCanComplete(BookingStatus status, int afterPhotoCount)
+    {
+        if (status is not (BookingStatus.CheckedIn or BookingStatus.InProgress))
+            throw new BookingFlowException(StatusCodes.Status409Conflict, "BOOKING_INVALID_STATE",
+                "Chỉ hoàn tất ca được khi đang trong ca làm.");
+        if (afterPhotoCount < 1)
+            throw new BookingFlowException(StatusCodes.Status409Conflict, "AFTER_PHOTO_REQUIRED",
+                "Cần ít nhất một ảnh sau khi hoàn tất ca.");
+    }
+}
+
+/// <summary>Trạng thái checklist mà người làm được phép đặt; <c>ClarificationRequested</c> dành cho luồng khác.</summary>
+public static class BookingTaskPolicy
+{
+    public static readonly BookingTaskStatus[] AllowedStatuses =
+        [BookingTaskStatus.Pending, BookingTaskStatus.InProgress, BookingTaskStatus.Completed];
+
+    public static void EnsureValidStatus(BookingTaskStatus status)
+    {
+        if (!AllowedStatuses.Contains(status))
+            throw new BookingFlowException(StatusCodes.Status400BadRequest, "INVALID_TASK_STATUS",
+                "Trạng thái mục checklist không hợp lệ.");
+    }
 }

@@ -2,6 +2,7 @@ using Abstrict.Api.Common;
 using Abstrict.Api.DTOs.Requests;
 using Abstrict.Api.DTOs.Responses;
 using Abstrict.Api.Models.Enums;
+using Abstrict.Api.Services.Implementations;
 using Abstrict.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -92,4 +93,16 @@ public sealed class BookingsController(IBookingService bookingService, IBookingP
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CheckInTokenResponse>> IssueCheckInToken(Guid bookingId, CancellationToken cancellationToken) =>
         await Run(async () => await bookingService.IssueCheckInTokenAsync(CurrentUserId, bookingId, cancellationToken));
+
+    /// <summary>Nội dung ảnh tiến độ của đơn tôi đặt; danh sách ảnh nằm trong chi tiết đơn.</summary>
+    [HttpGet("{bookingId:guid}/photos/{photoId:guid}/content")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPhotoContent(Guid bookingId, Guid photoId, CancellationToken cancellationToken)
+    {
+        var content = await bookingService.OpenPhotoAsync(CurrentUserId, bookingId, photoId, cancellationToken);
+        if (content is null)
+            return ToProblem(new BookingFlowException(StatusCodes.Status404NotFound, "BOOKING_PHOTO_NOT_FOUND", "Không tìm thấy ảnh."));
+        return ImageFile(content);
+    }
 }

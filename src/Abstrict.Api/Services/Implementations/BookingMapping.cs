@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Abstrict.Api.Common;
 using Abstrict.Api.DTOs.Responses;
 using Abstrict.Api.Models.Entities;
 using Abstrict.Api.Models.Enums;
@@ -42,9 +43,12 @@ public static class BookingMapping
     }
 
     public static bool IsCheckInOpen(Booking booking, DateTimeOffset now, BookingOptions options) =>
-        booking.Status == BookingStatus.Confirmed
-        && now >= booking.StartsAtUtc.AddMinutes(-options.CheckInOpensMinutesBeforeStart)
-        && now <= booking.EndsAtUtc;
+        IsCheckInOpen(booking.Status, booking.StartsAtUtc, booking.EndsAtUtc, now, options);
+
+    public static bool IsCheckInOpen(BookingStatus status, DateTimeOffset startsAtUtc, DateTimeOffset endsAtUtc, DateTimeOffset now, BookingOptions options) =>
+        status == BookingStatus.Confirmed
+        && now >= startsAtUtc.AddMinutes(-options.CheckInOpensMinutesBeforeStart)
+        && now <= endsAtUtc;
 
     public static List<BookingAction> AllowedActions(Booking booking, DateTimeOffset now, BookingOptions options)
     {
@@ -58,7 +62,8 @@ public static class BookingMapping
         return actions;
     }
 
-    public static List<FreelancerBookingAction> FreelancerActions(BookingStatus status, DateTimeOffset? confirmationDeadlineUtc, DateTimeOffset now)
+    public static List<FreelancerBookingAction> FreelancerActions(
+        BookingStatus status, DateTimeOffset? confirmationDeadlineUtc, DateTimeOffset startsAtUtc, DateTimeOffset endsAtUtc, DateTimeOffset now, BookingOptions options)
     {
         var actions = new List<FreelancerBookingAction>();
         if (status == BookingStatus.PendingProviderConfirmation)
@@ -67,8 +72,22 @@ public static class BookingMapping
                 actions.Add(FreelancerBookingAction.Confirm);
             actions.Add(FreelancerBookingAction.Reject);
         }
+        if (IsCheckInOpen(status, startsAtUtc, endsAtUtc, now, options))
+            actions.Add(FreelancerBookingAction.CheckIn);
+        if (status is BookingStatus.CheckedIn or BookingStatus.InProgress)
+        {
+            actions.Add(FreelancerBookingAction.UploadPhotos);
+            actions.Add(FreelancerBookingAction.CompleteWork);
+        }
         return actions;
     }
+
+    public static List<BookingPhotoResponse> Photos(Booking booking, string contentRouteBase) =>
+        booking.Photos.OrderBy(x => x.TakenAtUtc)
+            .Select(x => new BookingPhotoResponse(
+                x.Id, x.Type, x.BookingTaskId, x.Caption, x.TakenAtUtc, x.UploadedByUserId, $"{contentRouteBase}/{x.Id}/content"))
+            .ToList();
+
 
     public static List<BookingTaskResponse> Tasks(Booking booking) =>
         booking.Tasks.OrderBy(x => x.SortOrder)
@@ -80,11 +99,12 @@ public static class BookingMapping
             .Select(x => new BookingTimelineEntryResponse(x.FromStatus, x.ToStatus, x.Reason, x.Note, x.CreatedAtUtc))
             .ToList();
 
-    /// <summary>Cần nạp sẵn Provider, ServiceCategory, Tasks, StatusHistory và Payments.</summary>
+    /// <summary>Cần nạp sẵn Provider, ServiceCategory, Tasks, StatusHistory, Photos và Payments.</summary>
     public static BookingDetailResponse ToDetail(Booking booking, DateTimeOffset now, BookingOptions options)
     {
         var deposit = booking.Payments.Where(x => x.Purpose == PaymentPurpose.Deposit)
             .OrderByDescending(x => x.CreatedAtUtc).FirstOrDefault();
+        var photosRoute = $"/{ApiRoutes.Version1}/bookings/{booking.Id}/photos";
         return new BookingDetailResponse(
             booking.Id, booking.BookingNumber, booking.Status, booking.ProviderId, booking.Provider.DisplayName,
             booking.ServiceCategory.Code, booking.ServiceCategory.Name, booking.StartsAtUtc, booking.EndsAtUtc,
@@ -94,6 +114,6 @@ public static class BookingMapping
             booking.ProviderConfirmationDeadlineUtc, booking.CancelledAtUtc, booking.CancellationReason, deposit?.Status,
             deposit is null ? null : new DepositPaymentResponse(
                 deposit.Id, deposit.Status, deposit.AmountVnd, deposit.Method, booking.HoldExpiresAtUtc, null),
-            Tasks(booking), Timeline(booking), AllowedActions(booking, now, options), now);
+            Tasks(booking), Timeline(booking), AllowedActions(booking, now, options), now, Photos(booking, photosRoute));
     }
 }

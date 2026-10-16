@@ -1,6 +1,7 @@
 using Abstrict.Api.Data;
 using Abstrict.Api.DTOs.Requests;
 using Abstrict.Api.DTOs.Responses;
+using Abstrict.Api.Integrations.Storage;
 using Abstrict.Api.Models.Entities;
 using Abstrict.Api.Models.Enums;
 using Abstrict.Api.Options;
@@ -12,7 +13,8 @@ using Npgsql;
 namespace Abstrict.Api.Services.Implementations;
 
 public sealed class BookingService(
-    AppDbContext dbContext, BookingWorkflow workflow, TimeProvider timeProvider, IOptions<BookingOptions> options) : IBookingService
+    AppDbContext dbContext, BookingWorkflow workflow, TimeProvider timeProvider, IOptions<BookingOptions> options,
+    IFileStorage fileStorage) : IBookingService
 {
     public const int MaximumPageSize = 50;
 
@@ -139,7 +141,7 @@ public sealed class BookingService(
     {
         var booking = await dbContext.Bookings.AsNoTracking().AsSplitQuery()
             .Include(x => x.Provider).Include(x => x.ServiceCategory)
-            .Include(x => x.Tasks).Include(x => x.StatusHistory).Include(x => x.Payments)
+            .Include(x => x.Tasks).Include(x => x.StatusHistory).Include(x => x.Payments).Include(x => x.Photos)
             .SingleOrDefaultAsync(x => x.Id == bookingId && x.CustomerUserId == userId, cancellationToken)
             ?? throw NotFound();
         return BookingMapping.ToDetail(booking, timeProvider.GetUtcNow(), _options);
@@ -243,6 +245,19 @@ public sealed class BookingService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new CheckInTokenResponse(rawToken, token.ExpiresAtUtc, now);
+    }
+
+    public async Task<BookingPhotoContent?> OpenPhotoAsync(Guid userId, Guid bookingId, Guid photoId, CancellationToken cancellationToken)
+    {
+        var key = await dbContext.BookingPhotos.AsNoTracking()
+            .Where(x => x.Id == photoId && x.BookingId == bookingId && x.Booking.CustomerUserId == userId)
+            .Select(x => x.ObjectKey)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (key is null)
+            return null;
+
+        var stream = await fileStorage.OpenReadAsync(key, cancellationToken);
+        return stream is null ? null : new BookingPhotoContent(stream, KycImage.ContentTypeFromKey(key));
     }
 
     /// <summary>Kiểm tra provider, dịch vụ, địa chỉ, checklist và tính giá. Không kiểm tra slot.</summary>

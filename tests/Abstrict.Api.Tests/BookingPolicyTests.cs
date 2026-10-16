@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Abstrict.Api.DTOs.Requests;
+using Abstrict.Api.DTOs.Responses;
 using Abstrict.Api.Models.Entities;
 using Abstrict.Api.Models.Enums;
 using Abstrict.Api.Options;
@@ -140,6 +141,11 @@ public sealed class BookingPolicyTests
     [InlineData(BookingStatus.PendingDeposit, BookingStatus.Confirmed, true)]
     [InlineData(BookingStatus.PendingProviderConfirmation, BookingStatus.Rejected, true)]
     [InlineData(BookingStatus.Confirmed, BookingStatus.Cancelled, true)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.CheckedIn, true)]
+    [InlineData(BookingStatus.CheckedIn, BookingStatus.InProgress, true)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.InProgress, false)]
+    [InlineData(BookingStatus.CheckedIn, BookingStatus.PendingAcceptance, true)]
+    [InlineData(BookingStatus.InProgress, BookingStatus.PendingAcceptance, true)]
     [InlineData(BookingStatus.Confirmed, BookingStatus.PendingDeposit, false)]
     [InlineData(BookingStatus.Confirmed, BookingStatus.Rejected, false)]
     [InlineData(BookingStatus.Expired, BookingStatus.Confirmed, false)]
@@ -149,6 +155,72 @@ public sealed class BookingPolicyTests
         Assert.Equal(allowed, BookingStateMachine.CanTransition(from, to));
         if (!allowed)
             Assert.Equal("BOOKING_INVALID_STATE", Assert.Throws<BookingFlowException>(() => BookingStateMachine.EnsureCanTransition(from, to)).Code);
+    }
+
+    [Fact]
+    public void CheckInWindow_OpensThirtyMinutesBeforeStartAndClosesAtEnd()
+    {
+        var starts = At(9);
+        var ends = At(11);
+
+        Assert.False(BookingMapping.IsCheckInOpen(BookingStatus.Confirmed, starts, ends, starts.AddMinutes(-31), Options));
+        Assert.True(BookingMapping.IsCheckInOpen(BookingStatus.Confirmed, starts, ends, starts.AddMinutes(-30), Options));
+        Assert.True(BookingMapping.IsCheckInOpen(BookingStatus.Confirmed, starts, ends, ends, Options));
+        Assert.False(BookingMapping.IsCheckInOpen(BookingStatus.Confirmed, starts, ends, ends.AddSeconds(1), Options));
+        Assert.False(BookingMapping.IsCheckInOpen(BookingStatus.CheckedIn, starts, ends, starts, Options));
+    }
+
+    [Fact]
+    public void FreelancerActions_ExposeCheckInAndPhotoUpload()
+    {
+        var starts = At(9);
+        var ends = At(11);
+
+        Assert.Contains(FreelancerBookingAction.CheckIn,
+            BookingMapping.FreelancerActions(BookingStatus.Confirmed, null, starts, ends, starts.AddMinutes(-10), Options));
+        Assert.DoesNotContain(FreelancerBookingAction.CheckIn,
+            BookingMapping.FreelancerActions(BookingStatus.CheckedIn, null, starts, ends, starts, Options));
+        Assert.Contains(FreelancerBookingAction.UploadPhotos,
+            BookingMapping.FreelancerActions(BookingStatus.InProgress, null, starts, ends, starts, Options));
+        Assert.DoesNotContain(FreelancerBookingAction.UploadPhotos,
+            BookingMapping.FreelancerActions(BookingStatus.Confirmed, null, starts, ends, starts, Options));
+    }
+
+    [Fact]
+    public void FreelancerActions_ExposeCompleteWorkDuringShift()
+    {
+        var starts = At(9);
+        var ends = At(11);
+
+        Assert.Contains(FreelancerBookingAction.CompleteWork,
+            BookingMapping.FreelancerActions(BookingStatus.InProgress, null, starts, ends, starts, Options));
+        Assert.Contains(FreelancerBookingAction.CompleteWork,
+            BookingMapping.FreelancerActions(BookingStatus.CheckedIn, null, starts, ends, starts, Options));
+        Assert.DoesNotContain(FreelancerBookingAction.CompleteWork,
+            BookingMapping.FreelancerActions(BookingStatus.Confirmed, null, starts, ends, starts, Options));
+    }
+
+    [Fact]
+    public void CompletionPolicy_RequiresAfterPhotoDuringTheShift()
+    {
+        BookingCompletionPolicy.EnsureCanComplete(BookingStatus.InProgress, 1);
+        BookingCompletionPolicy.EnsureCanComplete(BookingStatus.CheckedIn, 3);
+
+        Assert.Equal("AFTER_PHOTO_REQUIRED", Assert.Throws<BookingFlowException>(
+            () => BookingCompletionPolicy.EnsureCanComplete(BookingStatus.InProgress, 0)).Code);
+        Assert.Equal("BOOKING_INVALID_STATE", Assert.Throws<BookingFlowException>(
+            () => BookingCompletionPolicy.EnsureCanComplete(BookingStatus.Confirmed, 1)).Code);
+    }
+
+    [Fact]
+    public void TaskPolicy_AcceptsFreelancerStatusesButRejectsClarification()
+    {
+        BookingTaskPolicy.EnsureValidStatus(BookingTaskStatus.Pending);
+        BookingTaskPolicy.EnsureValidStatus(BookingTaskStatus.InProgress);
+        BookingTaskPolicy.EnsureValidStatus(BookingTaskStatus.Completed);
+
+        Assert.Equal("INVALID_TASK_STATUS", Assert.Throws<BookingFlowException>(
+            () => BookingTaskPolicy.EnsureValidStatus(BookingTaskStatus.ClarificationRequested)).Code);
     }
 
     [Fact]
