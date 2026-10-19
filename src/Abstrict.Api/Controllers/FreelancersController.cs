@@ -15,10 +15,10 @@ public sealed class FreelancersController(IFreelancerDirectoryService directoryS
     [HttpGet]
     [ProducesResponseType<PagedResponse<FreelancerSummaryResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<FreelancerSummaryResponse>>> Search(
-        [FromQuery] string? serviceCode, [FromQuery] string? city, [FromQuery] string? district,
+        [FromQuery] string? service, [FromQuery] string? serviceCode, [FromQuery] string? city, [FromQuery] string? district,
         [FromQuery] double? minRating, [FromQuery] bool? acceptingBookings,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
-        Ok(await directoryService.SearchAsync(serviceCode, city, district, minRating, acceptingBookings, page, pageSize, cancellationToken));
+        Ok(await directoryService.SearchAsync(service, serviceCode, city, district, minRating, acceptingBookings, page, pageSize, cancellationToken));
 
     [HttpGet("{providerId:guid}")]
     [ProducesResponseType<FreelancerDetailResponse>(StatusCodes.Status200OK)]

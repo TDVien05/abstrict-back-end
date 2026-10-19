@@ -28,6 +28,7 @@ Query (tất cả tùy chọn):
 | Tham số | Kiểu | Mô tả |
 | --- | --- | --- |
 | `serviceCode` | string | Mã dịch vụ, không phân biệt hoa thường: `CLEANING`, `DEEP_CLEANING`, `COOKING`, `LAUNDRY`, `CHILDCARE`, `ELDERLY_CARE`, `AC_SERVICE`, `ELECTRICAL`, `PLUMBING`, `MOVING`, `GARDENING`, `PEST_CONTROL`. Chỉ tính dịch vụ đang bật. |
+| `service` | string | Tìm không phân biệt hoa thường trong mã, tên và mô tả dịch vụ đang bật. Ví dụ `clean` khớp `CLEANING` / `DEEP_CLEANING`, `dọn dẹp` khớp tên danh mục. Có thể kết hợp `serviceCode`; các bộ lọc cùng lúc áp dụng theo AND. |
 | `city` | string | Thành phố khớp chính xác với khu vực phục vụ (vd `Hồ Chí Minh`). |
 | `district` | string | Quận khớp chính xác (vd `Quận 1`). Kết hợp với `city` để tránh trùng tên quận. |
 | `minRating` | number | Điểm trung bình tối thiểu (0-5). |
@@ -37,7 +38,7 @@ Query (tất cả tùy chọn):
 
 Sắp xếp: `averageRating` giảm dần, rồi `completedBookingCount` giảm dần.
 
-Ví dụ: `GET /api/v1/freelancers?serviceCode=CLEANING&city=Hồ%20Chí%20Minh&minRating=4.5` (URL-encode ký tự tiếng Việt).
+Ví dụ: `GET /api/v1/freelancers?service=clean` tìm theo từ khóa; `GET /api/v1/freelancers?serviceCode=CLEANING` lọc đúng một danh mục. URL-encode từ khóa có dấu tiếng Việt.
 
 Response `200`:
 

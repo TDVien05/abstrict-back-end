@@ -11,7 +11,7 @@ public sealed class FreelancerDirectoryService(AppDbContext dbContext) : IFreela
     public const int MaximumPageSize = 50;
 
     public async Task<PagedResponse<FreelancerSummaryResponse>> SearchAsync(
-        string? serviceCode, string? city, string? district, double? minRating, bool? acceptingBookings,
+        string? service, string? serviceCode, string? city, string? district, double? minRating, bool? acceptingBookings,
         int page, int pageSize, CancellationToken cancellationToken)
     {
         page = Math.Max(page, 1);
@@ -23,7 +23,15 @@ public sealed class FreelancerDirectoryService(AppDbContext dbContext) : IFreela
         if (!string.IsNullOrWhiteSpace(serviceCode))
         {
             var code = serviceCode.Trim().ToUpperInvariant();
-            query = query.Where(f => f.Provider.Services.Any(s => s.IsActive && s.ServiceCategory.Code == code));
+            query = query.Where(f => f.Provider.Services.Any(s => s.IsActive && s.ServiceCategory.IsActive && s.ServiceCategory.Code == code));
+        }
+        if (!string.IsNullOrWhiteSpace(service))
+        {
+            var pattern = $"%{service.Trim()}%";
+            query = query.Where(f => f.Provider.Services.Any(s => s.IsActive && s.ServiceCategory.IsActive
+                && (EF.Functions.ILike(s.ServiceCategory.Code, pattern)
+                    || EF.Functions.ILike(s.ServiceCategory.Name, pattern)
+                    || (s.ServiceCategory.Description != null && EF.Functions.ILike(s.ServiceCategory.Description, pattern)))));
         }
         if (!string.IsNullOrWhiteSpace(city))
         {
@@ -57,7 +65,7 @@ public sealed class FreelancerDirectoryService(AppDbContext dbContext) : IFreela
                 f.Provider.CompletedBookingCount,
                 f.ExperienceYears,
                 f.Provider.IsAcceptingBookings,
-                Services = f.Provider.Services.Where(s => s.IsActive)
+                Services = f.Provider.Services.Where(s => s.IsActive && s.ServiceCategory.IsActive)
                     .Select(s => new { s.ServiceCategory.Code, s.HourlyRateVnd }).ToList()
             })
             .ToListAsync(cancellationToken);
@@ -88,7 +96,7 @@ public sealed class FreelancerDirectoryService(AppDbContext dbContext) : IFreela
                 f.Provider.CompletedBookingCount,
                 f.ExperienceYears,
                 f.Provider.IsAcceptingBookings,
-                Services = f.Provider.Services.Where(s => s.IsActive)
+                Services = f.Provider.Services.Where(s => s.IsActive && s.ServiceCategory.IsActive)
                     .OrderBy(s => s.ServiceCategory.Name)
                     .Select(s => new FreelancerServiceResponse(s.ServiceCategoryId, s.ServiceCategory.Code, s.ServiceCategory.Name, s.HourlyRateVnd, s.Description)).ToList(),
                 Areas = f.Provider.ServiceAreas

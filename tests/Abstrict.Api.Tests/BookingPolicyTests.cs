@@ -146,6 +146,8 @@ public sealed class BookingPolicyTests
     [InlineData(BookingStatus.Confirmed, BookingStatus.InProgress, false)]
     [InlineData(BookingStatus.CheckedIn, BookingStatus.PendingAcceptance, true)]
     [InlineData(BookingStatus.InProgress, BookingStatus.PendingAcceptance, true)]
+    [InlineData(BookingStatus.PendingAcceptance, BookingStatus.Disputed, true)]
+    [InlineData(BookingStatus.Completed, BookingStatus.Disputed, true)]
     [InlineData(BookingStatus.Confirmed, BookingStatus.PendingDeposit, false)]
     [InlineData(BookingStatus.Confirmed, BookingStatus.Rejected, false)]
     [InlineData(BookingStatus.Expired, BookingStatus.Confirmed, false)]
@@ -193,11 +195,13 @@ public sealed class BookingPolicyTests
         var ends = At(11);
 
         Assert.Contains(FreelancerBookingAction.CompleteWork,
-            BookingMapping.FreelancerActions(BookingStatus.InProgress, null, starts, ends, starts, Options));
+            BookingMapping.FreelancerActions(BookingStatus.InProgress, null, starts, ends, starts, Options, hasAfterPhoto: true));
         Assert.Contains(FreelancerBookingAction.CompleteWork,
-            BookingMapping.FreelancerActions(BookingStatus.CheckedIn, null, starts, ends, starts, Options));
+            BookingMapping.FreelancerActions(BookingStatus.CheckedIn, null, starts, ends, starts, Options, hasAfterPhoto: true));
         Assert.DoesNotContain(FreelancerBookingAction.CompleteWork,
             BookingMapping.FreelancerActions(BookingStatus.Confirmed, null, starts, ends, starts, Options));
+        Assert.DoesNotContain(FreelancerBookingAction.CompleteWork,
+            BookingMapping.FreelancerActions(BookingStatus.InProgress, null, starts, ends, starts, Options));
     }
 
     [Fact]

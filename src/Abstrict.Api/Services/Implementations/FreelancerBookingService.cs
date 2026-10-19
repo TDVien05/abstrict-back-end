@@ -39,7 +39,7 @@ public sealed class FreelancerBookingService(
                 x.ServiceCategory.Code, x.ServiceCategory.Name, x.StartsAtUtc, x.EndsAtUtc, x.BaseAmountVnd, x.DepositAmountVnd,
                 x.CustomerAddress != null ? x.CustomerAddress.District + ", " + x.CustomerAddress.City : null,
                 x.ProviderConfirmationDeadlineUtc,
-                BookingMapping.FreelancerActions(x.Status, x.ProviderConfirmationDeadlineUtc, x.StartsAtUtc, x.EndsAtUtc, now, _options)))
+                BookingMapping.FreelancerActions(x.Status, x.ProviderConfirmationDeadlineUtc, x.StartsAtUtc, x.EndsAtUtc, now, _options, false)))
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<FreelancerBookingSummaryResponse>(items, page, pageSize, total, (int)Math.Ceiling(total / (double)pageSize));
@@ -230,7 +230,7 @@ public sealed class FreelancerBookingService(
 
         var providerId = await GetProviderIdAsync(userId, cancellationToken);
         var now = timeProvider.GetUtcNow();
-        string newKey;
+        string? newKey = null;
 
         await using (var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken))
         {
@@ -268,14 +268,13 @@ public sealed class FreelancerBookingService(
             try
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             catch
             {
                 await fileStorage.DeleteAsync(newKey, CancellationToken.None);
                 throw;
             }
-
-            await transaction.CommitAsync(cancellationToken);
         }
 
         dbContext.ChangeTracker.Clear();
@@ -333,7 +332,8 @@ public sealed class FreelancerBookingService(
             booking.ProviderConfirmationDeadlineUtc,
             addressVisible ? booking.AddressSnapshot : null,
             booking.CustomerNote, BookingMapping.Tasks(booking), BookingMapping.Timeline(booking),
-            BookingMapping.FreelancerActions(booking.Status, booking.ProviderConfirmationDeadlineUtc, booking.StartsAtUtc, booking.EndsAtUtc, now, _options),
+            BookingMapping.FreelancerActions(booking.Status, booking.ProviderConfirmationDeadlineUtc, booking.StartsAtUtc, booking.EndsAtUtc, now, _options,
+                booking.Photos.Any(photo => photo.Type == BookingPhotoType.After)),
             now, BookingMapping.Photos(booking, photosRoute));
     }
 
