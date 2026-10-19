@@ -85,7 +85,7 @@ public sealed record BookingPhotoResponse(
 /// <summary><c>Reason</c> là mã ổn định (Created, DepositPaid, …); <c>Note</c> là ghi chú tự do của người hủy/từ chối.</summary>
 public sealed record BookingTimelineEntryResponse(BookingStatus FromStatus, BookingStatus ToStatus, string? Reason, string? Note, DateTimeOffset AtUtc);
 
-public enum BookingAction { PayDeposit, Cancel, ShowCheckInQr }
+public enum BookingAction { PayDeposit, Cancel, ShowCheckInQr, OpenDispute, AcceptWork, RateProvider }
 
 public sealed record BookingDetailResponse(
     Guid Id,

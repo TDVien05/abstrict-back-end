@@ -161,7 +161,9 @@ public static class BookingStateMachine
             [BookingStatus.Confirmed, BookingStatus.Rejected, BookingStatus.Expired, BookingStatus.Cancelled],
         [BookingStatus.Confirmed] = [BookingStatus.Cancelled, BookingStatus.CheckedIn],
         [BookingStatus.CheckedIn] = [BookingStatus.InProgress, BookingStatus.PendingAcceptance],
-        [BookingStatus.InProgress] = [BookingStatus.PendingAcceptance]
+        [BookingStatus.InProgress] = [BookingStatus.PendingAcceptance],
+        [BookingStatus.PendingAcceptance] = [BookingStatus.Completed, BookingStatus.Disputed],
+        [BookingStatus.Completed] = [BookingStatus.Disputed]
     };
 
     public static bool CanTransition(BookingStatus from, BookingStatus to) =>
@@ -186,6 +188,8 @@ public static class BookingTimelineReasons
     public const string CheckedIn = "CheckedIn";
     public const string WorkStarted = "WorkStarted";
     public const string WorkFinished = "WorkFinished";
+    public const string CustomerAcceptedWork = "CustomerAcceptedWork";
+    public const string CustomerDisputeOpened = "CustomerDisputeOpened";
     public const string CustomerCancelled = "CustomerCancelled";
     public const string HoldExpired = "HoldExpired";
     public const string ConfirmationExpired = "ConfirmationExpired";

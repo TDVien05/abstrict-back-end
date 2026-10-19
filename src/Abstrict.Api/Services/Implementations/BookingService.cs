@@ -144,7 +144,10 @@ public sealed class BookingService(
             .Include(x => x.Tasks).Include(x => x.StatusHistory).Include(x => x.Payments).Include(x => x.Photos)
             .SingleOrDefaultAsync(x => x.Id == bookingId && x.CustomerUserId == userId, cancellationToken)
             ?? throw NotFound();
-        return BookingMapping.ToDetail(booking, timeProvider.GetUtcNow(), _options);
+        var hasActiveDispute = await dbContext.Disputes.AsNoTracking().AnyAsync(x => x.BookingId == bookingId
+            && x.Status != DisputeStatus.Decided && x.Status != DisputeStatus.Closed, cancellationToken);
+        var hasRating = await dbContext.Ratings.AsNoTracking().AnyAsync(x => x.BookingId == bookingId && x.ReviewerUserId == userId, cancellationToken);
+        return BookingMapping.ToDetail(booking, timeProvider.GetUtcNow(), _options, hasActiveDispute, hasRating);
     }
 
     public async Task<CancellationPreviewResponse> PreviewCancellationAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
@@ -203,6 +206,36 @@ public sealed class BookingService(
         }
 
         await workflow.SendRefundAsync(refund, cancellationToken);
+        dbContext.ChangeTracker.Clear();
+        return await GetAsync(userId, bookingId, cancellationToken);
+    }
+
+    public async Task<BookingDetailResponse> AcceptWorkAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken))
+        {
+            var booking = await workflow.LockAsync(bookingId, cancellationToken);
+            if (booking is null || booking.CustomerUserId != userId)
+                throw NotFound();
+            if (booking.Status != BookingStatus.PendingAcceptance)
+                throw new BookingFlowException(StatusCodes.Status409Conflict, "BOOKING_INVALID_STATE", "Chá»‰ cÃ³ thá»ƒ nghiá»‡m thu Ä‘Æ¡n Ä‘ang chá» khÃ¡ch xÃ¡c nháº­n.");
+
+            workflow.Transition(booking, BookingStatus.Completed, userId, BookingTimelineReasons.CustomerAcceptedWork, now);
+            booking.CompletedAtUtc = now;
+            var provider = await dbContext.Providers.FromSqlInterpolated($"SELECT * FROM providers WHERE id = {booking.ProviderId} FOR UPDATE")
+                .SingleAsync(cancellationToken);
+            provider.CompletedBookingCount++;
+            provider.UpdatedAtUtc = now;
+            var providerUserId = await dbContext.FreelancerProfiles.Where(x => x.ProviderId == booking.ProviderId)
+                .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync(cancellationToken);
+            if (providerUserId is { } id)
+                workflow.Notify(id, "booking.work_accepted", "Khách đã nghiệm thu", $"Khách đã xác nhận hoàn tất đơn {booking.BookingNumber}.", booking, now);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+
         dbContext.ChangeTracker.Clear();
         return await GetAsync(userId, bookingId, cancellationToken);
     }

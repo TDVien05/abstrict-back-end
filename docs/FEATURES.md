@@ -91,7 +91,7 @@ Không cần đăng nhập; chỉ trả freelancer đã `Approved`. Không bao g
 | GET | `/freelancers/{providerId}` | public | Chi tiết hồ sơ công khai (dịch vụ, khu vực). |
 | GET | `/freelancers/{providerId}/availability` | public | Lịch rảnh/bận theo ngày; khoảng bận không kèm thông tin khách/đơn. |
 
-Bộ lọc `/freelancers`: `serviceCode`, `city`, `district`, `minRating`, `acceptingBookings`, `page`, `pageSize`. Sắp xếp theo `averageRating` rồi `completedBookingCount` giảm dần. Chi tiết: `FREELANCER_PROFILE_API.md`.
+Bộ lọc danh bạ freelancer hỗ trợ tìm dịch vụ theo từ khóa `service` hoặc mã danh mục chính xác `serviceCode`, kết hợp với thành phố, quận, điểm đánh giá và trạng thái nhận đơn. Chi tiết: `FREELANCER_PROFILE_API.md`.
 
 ---
 
@@ -236,13 +236,45 @@ Quyền riêng tư: trước `Confirmed` trả `addressSnapshot = null`, chỉ `
 
 ---
 
-## 13. Chưa triển khai (đã có entity/bảng nhưng chưa có nghiệp vụ)
+## 13. Đánh giá khách hàng
+
+Sau khi booking đạt `Completed`, khách hàng có thể đánh giá freelancer một lần (1–5 điểm, nhận xét tùy chọn). Đánh giá được công khai ngay và cập nhật `averageRating`/`ratingCount` trên hồ sơ freelancer. Booking detail thêm `RateProvider` trong `allowedActions` đến khi khách gửi đánh giá.
+
+| Method | Route | Vai trò | Mô tả |
+| --- | --- | --- | --- |
+| POST | `/bookings/{id}/rating` | Customer | Gửi đánh giá cho freelancer của booking đã hoàn tất. |
+| GET | `/bookings/{id}/rating` | Customer | Lấy đánh giá của chính khách hàng cho booking. |
+| POST | `/bookings/{id}/accept-work` | Customer | Nghiệm thu công việc (`PendingAcceptance` → `Completed`), sau đó có thể đánh giá. |
+| GET | `/freelancers/{providerId}/ratings` | public | Danh sách đánh giá đã công khai, có phân trang. |
+
+Chi tiết request/response, lỗi và seed demo: [`RATINGS_API.md`](RATINGS_API.md). Chạy `powershell -File scripts/seed-rating-fixtures.ps1` sau khi seed freelancer để mỗi freelancer Approved có một booking đã review và một booking chưa review.
+
+## 14. Chưa triển khai (đã có entity/bảng nhưng chưa có nghiệp vụ)
 
 Các phần sau thuộc giai đoạn sau, **không** được tạo stub:
 
-- Nghiệm thu phía khách (`PendingAcceptance → Completed`) và gia hạn ca.
+- Gia hạn ca.
 - Thu 85% còn lại, chi trả cho freelancer, cổng thanh toán (PSP) thật, webhook.
-- Đánh giá hai chiều (`Rating`) và khiếu nại (`Dispute`, bằng chứng, quyết định, xem xét lại).
+- Khiếu nại (`Dispute`, bằng chứng, quyết định, xem xét lại).
+
+### Customer → Admin khiếu nại
+
+| Method | Route | Vai trò | Mục đích |
+|---|---|---|---|
+| GET | `/disputes/categories` | Customer | Lấy các loại form khiếu nại và mô tả để customer chọn. |
+| POST | `/disputes/bookings/{bookingId}` | Customer | Gửi loại khiếu nại + mô tả cho đơn `PendingAcceptance`/`Completed`; đơn chuyển `Disputed`. |
+| POST | `/disputes/{disputeId}/evidence` | Customer | Tải ảnh JPG/PNG tối đa 5 MB; multipart field `file`, tùy chọn `description`. |
+| GET | `/disputes` / `/disputes/{disputeId}` | Customer | Xem khiếu nại của mình và trạng thái xử lý. |
+| POST | `/disputes/{disputeId}/messages` | Customer | Bổ sung trao đổi cho hồ sơ. |
+| GET | `/admin/disputes?status=Open` | Admin | Lọc hàng chờ; bỏ `status` để xem tất cả. |
+| GET | `/admin/disputes/{disputeId}` | Admin | Xem hồ sơ, ảnh, trao đổi và quyết định. |
+| GET | `/admin/disputes/{disputeId}/evidence/{evidenceId}/content` | Admin | Mở ảnh bằng chứng private. |
+| POST | `/admin/disputes/{disputeId}/messages?internalNote=true` | Admin | Gửi trao đổi; ghi chú nội bộ không hiện với customer. |
+| POST | `/admin/disputes/{disputeId}/decision` | Admin | Ghi outcome, lý do, khoản hoàn và khoản trả provider tùy chọn. |
+
+Category codes: `ServiceQuality`, `Payment`, `Safety`, `Damage`, `Loss`, `Other`. Mỗi booking chỉ có một khiếu nại active; khiếu nại bắt đầu với hạn phản hồi 48 giờ. Ảnh lưu ngoài `wwwroot`, chỉ tải qua endpoint có quyền. Chi tiết request/response nằm trong Swagger.
+
+Booking detail trả `allowedActions: ["OpenDispute"]` cho đơn `PendingAcceptance`/`Completed` chưa có khiếu nại active để FE hiện nút gửi form.
 - Gói tăng hiển thị (`PromotionPlan`, `PromotionPurchase`, `ProviderMetricDaily`).
 - Quản lý người làm của công ty (`CompanyWorker`, `CompanyWorkerAssignment`), bảng giá/dịch vụ công ty, tài khoản ngân hàng, ví đối tác.
 - Hiển thị công ty trong danh bạ công khai và đặt lịch với công ty (`BookingService` hiện trả `PROVIDER_NOT_BOOKABLE` cho công ty).
@@ -251,7 +283,7 @@ Các phần sau thuộc giai đoạn sau, **không** được tạo stub:
 
 ---
 
-## 14. Cấu trúc thư mục chính
+## 15. Cấu trúc thư mục chính
 
 ```text
 src/Abstrict.Api/

@@ -4,7 +4,31 @@ Luồng đặt lịch của khách hàng với freelancer: địa chỉ → lị
 
 Base URL: `/api/v1`. Lỗi trả `ProblemDetails` kèm `code` và `traceId`. Mọi thời điểm là UTC (ISO 8601); ngày lịch tính theo `Asia/Ho_Chi_Minh`. Tiền là số nguyên VND và luôn do server tính.
 
-Chưa hỗ trợ: đối tác công ty, nghiệm thu phía khách, gia hạn ca, đánh giá, khiếu nại, cổng thanh toán thật.
+Customer ratings are supported; see `RATINGS_API.md`. Customer-to-admin disputes have separate APIs at `/api/v1/disputes` and `/api/v1/admin/disputes`.
+
+## Khiếu nại Customer → Admin
+
+Customer lấy form từ `GET /api/v1/disputes/categories`; các category là `ServiceQuality`, `Payment`, `Safety`, `Damage`, `Loss`, `Other`.
+
+Mở case cho đơn `PendingAcceptance` hoặc `Completed`:
+
+```http
+POST /api/v1/disputes/bookings/{bookingId}
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+
+{"category":"ServiceQuality","description":"Checklist khu vực bếp chưa được hoàn thành như thỏa thuận."}
+```
+
+Upload mỗi ảnh qua multipart field `file`, tùy chọn `description`; JPG/PNG thật, tối đa 5 MB:
+
+```http
+POST /api/v1/disputes/{disputeId}/evidence
+Authorization: Bearer <customer-token>
+Content-Type: multipart/form-data
+```
+
+Customer xem case qua `GET /api/v1/disputes` và `GET /api/v1/disputes/{disputeId}`. Admin lọc queue bằng `GET /api/v1/admin/disputes?status=Open`, xem hồ sơ/evidence, gửi message (có thể `?internalNote=true`) và ghi quyết định ở `POST /api/v1/admin/disputes/{disputeId}/decision`. Một booking chỉ có một case active; mở khiếu nại sẽ chuyển đơn sang `Disputed` và tạo timeline/notification.
 
 ## Tổng hợp endpoint
 
@@ -21,7 +45,11 @@ Chưa hỗ trợ: đối tác công ty, nghiệm thu phía khách, gia hạn ca,
 | POST | `/bookings/quote` | Customer | Báo giá, không tạo đơn. |
 | POST | `/bookings` | Customer | Tạo đơn và giữ chỗ (201). |
 | GET | `/bookings` | Customer | Đơn của tôi, có phân trang. |
-| GET | `/bookings/{id}` | Customer | Chi tiết đơn. |
+| GET | `/bookings/{id}` | Customer | Chi tiết đơn; `allowedActions` có `RateProvider` nếu đơn hoàn tất và chưa được đánh giá. |
+| POST | `/bookings/{id}/accept-work` | Customer | Nghiệm thu công việc đang `PendingAcceptance`, chuyển đơn sang `Completed`. |
+| POST | `/bookings/{id}/rating` | Customer | Gửi đánh giá 1–5 sao sau khi đơn hoàn tất. |
+| GET | `/bookings/{id}/rating` | Customer | Lấy đánh giá của khách cho đơn. |
+| GET | `/freelancers/{providerId}/ratings` | public | Danh sách đánh giá freelancer; xem [`RATINGS_API.md`](RATINGS_API.md). |
 | POST | `/bookings/{id}/deposit` | Customer | Khởi tạo thanh toán cọc. |
 | POST | `/payments/sandbox/{paymentId}/confirm` | Customer | Chốt kết quả thanh toán giả lập. |
 | GET | `/bookings/{id}/cancellation-preview` | Customer | Xem trước tiền hoàn/giữ khi hủy. |
@@ -305,6 +333,8 @@ Body `{ "status": "Completed" }` — chỉ nhận `Pending`, `InProgress`, `Comp
 
 Không body. Chỉ nhận khi đơn `CheckedIn` hoặc `InProgress` **và đã có ít nhất một ảnh `After`** (nếu chưa có trả 409 `AFTER_PHOTO_REQUIRED`). Không bắt buộc mọi mục checklist đã `Completed`. Thành công: đơn chuyển `PendingAcceptance` (lý do `WorkFinished`) và thông báo khách chờ nghiệm thu.
 
+Customer acceptance: when work is submitted, the booking becomes `PendingAcceptance`; call `POST /bookings/{id}/accept-work` to move it to `Completed`. Then `allowedActions` includes `RateProvider` until the customer submits a review. See `RATINGS_API.md`.
+
 ## Phía freelancer
 
 - `POST /freelancer/availability` body `{ "startsAtUtc": "…", "endsAtUtc": "…" }`: theo bước 30 phút, tối thiểu 2 giờ, ở tương lai, không chồng khoảng rảnh khác. Chỉ hồ sơ đã duyệt.
@@ -361,6 +391,7 @@ Không body. Chỉ nhận khi đơn `CheckedIn` hoặc `InProgress` **và đã c
 ```powershell
 powershell -File scripts/seed-fake-freelancers.ps1    # 8 freelancer, 5 người đã duyệt
 powershell -File scripts/seed-booking-fixtures.ps1    # lịch rảnh 08-12h và 13-18h giờ VN trong 14 ngày + khách hàng thử
+powershell -File scripts/seed-rating-fixtures.ps1    # one reviewed and one unreviewed Completed booking for each of the 5 approved demo freelancers
 ```
 
 - Khách hàng thử: số `0920000001`, mật khẩu `Customer-dev-2026`, có sẵn một địa chỉ ở Quận 1, Hồ Chí Minh. Không cần qua OTP.
@@ -382,7 +413,7 @@ powershell -File scripts/seed-booking-fixtures.ps1    # lịch rảnh 08-12h và
 | 7 | Giới hạn request cho báo giá | `POST /bookings/quote` không bị giới hạn tần suất. |
 | 8 | Danh sách giá trị | `role`: `Customer`, `Freelancer`, `Company`, `Admin`. `timeline[].reason`: bảng mã ở mục "Chi tiết đơn". `status` trong query: tên enum dạng chuỗi, đã thử ở cả hai phía. |
 | 9 | Tài khoản khách hàng thử | Xong: `0920000001` trong `seed-booking-fixtures.ps1`. |
-| 10 | Các bước sau `Confirmed` | Xong: check-in QR, ảnh Before/After, cập nhật checklist, hoàn tất ca (→ `PendingAcceptance`). Còn lại: nghiệm thu phía khách (→ `Completed`) và gia hạn ca. |
+| 10 | Steps after `Confirmed` | Done: QR check-in, Before/After photos, checklist updates, freelancer completion (`PendingAcceptance`), customer acceptance (`POST /bookings/{id}/accept-work` → `Completed`) and reviews. Shift extension remains.
 | 11 | Cổng thanh toán thật | Chưa làm, PSP chưa chốt. `/payments/sandbox/*` trả 404 khi `Payments:SandboxEnabled` tắt. |
 | 12 | Cải thiện nhỏ | Xong: `serverTimeUtc` (chi tiết đơn, mã QR), `GET /freelancer/bookings/counts`, `customerProfile.avatarUrl` trong login. Chưa có: kênh đẩy SSE/WebSocket (FE tiếp tục gọi lại định kỳ), hạng thành viên (chưa có trong mô hình dữ liệu). |
 

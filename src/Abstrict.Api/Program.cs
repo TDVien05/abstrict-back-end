@@ -103,6 +103,8 @@ builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
 builder.Services.AddScoped<IFreelancerBookingService, FreelancerBookingService>();
+builder.Services.AddScoped<IDisputeService, DisputeService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddHostedService<BookingExpiryJob>();
 var jwtKey = builder.Configuration["Jwt:SigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) && !builder.Environment.IsDevelopment())

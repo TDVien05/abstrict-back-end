@@ -336,6 +336,7 @@ public static partial class AbstrictModelConfiguration
             entity.Property(x => x.Category).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
             entity.HasIndex(x => new { x.BookingId, x.Status });
+            entity.HasIndex(x => x.BookingId).IsUnique().HasFilter("status IN ('Open', 'AwaitingResponse', 'UnderReview', 'Appealed')");
             entity.HasOne(x => x.Booking).WithMany().HasForeignKey(x => x.BookingId).OnDelete(DeleteBehavior.Restrict);
         });
 

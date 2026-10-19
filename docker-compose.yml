@@ -51,6 +51,8 @@ services:
       Database__ApplyMigrations: "true"
       Storage__RootPath: /var/lib/abstrict/storage
       DataProtection__KeysPath: /var/lib/abstrict/keys
+      Admin__SeedPassword: ${ADMIN_SEED_PASSWORD:-}
+      Admin__ResetSeedPasswordOnStartup: ${ADMIN_RESET_SEED_PASSWORD_ON_STARTUP:-false}
       ConnectionStrings__DefaultConnection: >-
         Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB in .env.docker};Username=${POSTGRES_USER:?Set POSTGRES_USER in .env.docker};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
     ports:

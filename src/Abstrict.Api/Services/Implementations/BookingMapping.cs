@@ -50,7 +50,7 @@ public static class BookingMapping
         && now >= startsAtUtc.AddMinutes(-options.CheckInOpensMinutesBeforeStart)
         && now <= endsAtUtc;
 
-    public static List<BookingAction> AllowedActions(Booking booking, DateTimeOffset now, BookingOptions options)
+    public static List<BookingAction> AllowedActions(Booking booking, DateTimeOffset now, BookingOptions options, bool hasActiveDispute = false, bool hasRating = false)
     {
         var actions = new List<BookingAction>();
         if (booking.Status == BookingStatus.PendingDeposit && booking.HoldExpiresAtUtc >= now)
@@ -59,11 +59,18 @@ public static class BookingMapping
             actions.Add(BookingAction.Cancel);
         if (IsCheckInOpen(booking, now, options))
             actions.Add(BookingAction.ShowCheckInQr);
+        if (!hasActiveDispute && booking.Status is BookingStatus.PendingAcceptance or BookingStatus.Completed)
+            actions.Add(BookingAction.OpenDispute);
+        if (booking.Status == BookingStatus.PendingAcceptance)
+            actions.Add(BookingAction.AcceptWork);
+        if (booking.Status == BookingStatus.Completed && !hasRating)
+            actions.Add(BookingAction.RateProvider);
         return actions;
     }
 
     public static List<FreelancerBookingAction> FreelancerActions(
-        BookingStatus status, DateTimeOffset? confirmationDeadlineUtc, DateTimeOffset startsAtUtc, DateTimeOffset endsAtUtc, DateTimeOffset now, BookingOptions options)
+        BookingStatus status, DateTimeOffset? confirmationDeadlineUtc, DateTimeOffset startsAtUtc, DateTimeOffset endsAtUtc,
+        DateTimeOffset now, BookingOptions options, bool hasAfterPhoto = false)
     {
         var actions = new List<FreelancerBookingAction>();
         if (status == BookingStatus.PendingProviderConfirmation)
@@ -77,7 +84,8 @@ public static class BookingMapping
         if (status is BookingStatus.CheckedIn or BookingStatus.InProgress)
         {
             actions.Add(FreelancerBookingAction.UploadPhotos);
-            actions.Add(FreelancerBookingAction.CompleteWork);
+            if (hasAfterPhoto)
+                actions.Add(FreelancerBookingAction.CompleteWork);
         }
         return actions;
     }
@@ -100,7 +108,7 @@ public static class BookingMapping
             .ToList();
 
     /// <summary>Cần nạp sẵn Provider, ServiceCategory, Tasks, StatusHistory, Photos và Payments.</summary>
-    public static BookingDetailResponse ToDetail(Booking booking, DateTimeOffset now, BookingOptions options)
+    public static BookingDetailResponse ToDetail(Booking booking, DateTimeOffset now, BookingOptions options, bool hasActiveDispute = false, bool hasRating = false)
     {
         var deposit = booking.Payments.Where(x => x.Purpose == PaymentPurpose.Deposit)
             .OrderByDescending(x => x.CreatedAtUtc).FirstOrDefault();
@@ -114,6 +122,6 @@ public static class BookingMapping
             booking.ProviderConfirmationDeadlineUtc, booking.CancelledAtUtc, booking.CancellationReason, deposit?.Status,
             deposit is null ? null : new DepositPaymentResponse(
                 deposit.Id, deposit.Status, deposit.AmountVnd, deposit.Method, booking.HoldExpiresAtUtc, null),
-            Tasks(booking), Timeline(booking), AllowedActions(booking, now, options), now, Photos(booking, photosRoute));
+            Tasks(booking), Timeline(booking), AllowedActions(booking, now, options, hasActiveDispute, hasRating), now, Photos(booking, photosRoute));
     }
 }

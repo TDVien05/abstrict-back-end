@@ -86,6 +86,15 @@ public sealed class BookingsController(IBookingService bookingService, IBookingP
 
     /// <summary>Phát hành mã QR check-in ngắn hạn, dùng một lần.</summary>
     /// <remarks>Mã cũ chưa dùng bị vô hiệu ngay khi phát hành mã mới. Mã thô chỉ trả về một lần, server chỉ lưu hash.</remarks>
+    /// <summary>Khách nghiệm thu công việc freelancer đã hoàn tất; đơn chuyển sang Completed và có thể được đánh giá.</summary>
+    [HttpPost("{bookingId:guid}/accept-work")]
+    [EnableRateLimiting("booking-write")]
+    [ProducesResponseType<BookingDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<BookingDetailResponse>> AcceptWork(Guid bookingId, CancellationToken cancellationToken) =>
+        await Run(async () => await bookingService.AcceptWorkAsync(CurrentUserId, bookingId, cancellationToken));
+
     [HttpPost("{bookingId:guid}/check-in-token")]
     [EnableRateLimiting("booking-write")]
     [ProducesResponseType<CheckInTokenResponse>(StatusCodes.Status200OK)]

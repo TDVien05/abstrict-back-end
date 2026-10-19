@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Abstrict.Api.Services.Implementations;
 
-/// <summary>Tạo tài khoản admin đầu tiên từ cấu hình (Admin:SeedPhoneNumber / Admin:SeedPassword / Admin:SeedFullName); bỏ qua nếu thiếu cấu hình hoặc đã tồn tại.</summary>
+/// <summary>Tạo tài khoản admin đầu tiên; chỉ đồng bộ lại mật khẩu tài khoản này khi Admin:ResetSeedPasswordOnStartup bật.</summary>
 public static class AdminAccountSeeder
 {
     public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration, ILogger logger, CancellationToken cancellationToken = default)
@@ -22,10 +22,22 @@ public static class AdminAccountSeeder
             throw new InvalidOperationException("Admin:SeedPassword cần có ít nhất 12 ký tự.");
 
         var dbContext = services.GetRequiredService<AppDbContext>();
-        if (await dbContext.Users.AnyAsync(x => x.PhoneNumber == phone, cancellationToken))
-            return;
-
         var hasher = services.GetRequiredService<IPasswordHasher<User>>();
+        var existing = await dbContext.Users.SingleOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken);
+        if (existing is not null)
+        {
+            if (!configuration.GetValue<bool>("Admin:ResetSeedPasswordOnStartup") || existing.Role != UserRole.Admin)
+                return;
+
+            existing.PasswordHash = hasher.HashPassword(existing, password);
+            existing.Status = AccountStatus.Active;
+            existing.PhoneVerifiedAtUtc ??= DateTimeOffset.UtcNow;
+            existing.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            logger.LogWarning("Đã đồng bộ mật khẩu tài khoản admin cấu hình cho số {Phone} theo cờ Admin:ResetSeedPasswordOnStartup.", phone);
+            return;
+        }
+
         var now = DateTimeOffset.UtcNow;
         var user = new User
         {

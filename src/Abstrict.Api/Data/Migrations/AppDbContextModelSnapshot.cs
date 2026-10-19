@@ -1099,6 +1099,10 @@ namespace Abstrict.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BookingId")
+                        .IsUnique()
+                        .HasFilter("status IN ('Open', 'AwaitingResponse', 'UnderReview', 'Appealed')");
+
                     b.HasIndex("BookingId", "Status");
 
                     b.ToTable("disputes");
