@@ -249,6 +249,23 @@ Sau khi booking đạt `Completed`, khách hàng có thể đánh giá freelance
 
 Chi tiết request/response, lỗi và seed demo: [`RATINGS_API.md`](RATINGS_API.md). Chạy `powershell -File scripts/seed-rating-fixtures.ps1` sau khi seed freelancer để mỗi freelancer Approved có một booking đã review và một booking chưa review.
 
+## 13a. Gói tăng hiển thị (danh mục gói)
+
+Admin cấu hình gói (giá, thời hạn, quyền lợi) và đối tác xem gói đang bán cho đúng đối tượng của mình. Chi tiết: [PROMOTION_PLANS_API.md](PROMOTION_PLANS_API.md).
+
+| Method | Endpoint | Quyền | Mô tả |
+| --- | --- | --- | --- |
+| GET | `/admin/promotion-plans?audience=&isActive=` | Admin | Mọi gói, kể cả đang tắt, kèm số lượt mua. |
+| GET | `/admin/promotion-plans/report` | Admin | Báo cáo gói: doanh thu, lượt mua, doanh thu 7 ngày, theo đối tượng và từng gói. |
+| GET | `/admin/promotion-plans/{planId}` | Admin | Chi tiết một gói. |
+| POST | `/admin/promotion-plans` | Admin | Tạo gói (201). |
+| PUT | `/admin/promotion-plans/{planId}` | Admin | Sửa gói; mã và đối tượng không đổi được. |
+| DELETE | `/admin/promotion-plans/{planId}` | Admin | Xóa gói chưa có lượt mua (204). |
+| GET | `/partner/promotion-plans` | Freelancer, Company | Gói đang bán cho đúng đối tượng của người gọi. |
+| GET | `/partner/promotion-purchases` | Freelancer, Company | Lịch sử mua gói. |
+| POST | `/partner/promotion-purchases` | Freelancer, Company | Mua gói (header `Idempotency-Key`); gói giá 0 kích hoạt ngay. |
+| POST | `/partner/promotion-purchases/{purchaseId}/sandbox-confirm` | Freelancer, Company | Chốt thanh toán sandbox. |
+
 ## 14. Chưa triển khai (đã có entity/bảng nhưng chưa có nghiệp vụ)
 
 Các phần sau thuộc giai đoạn sau, **không** được tạo stub:
@@ -275,7 +292,7 @@ Các phần sau thuộc giai đoạn sau, **không** được tạo stub:
 Category codes: `ServiceQuality`, `Payment`, `Safety`, `Damage`, `Loss`, `Other`. Mỗi booking chỉ có một khiếu nại active; khiếu nại bắt đầu với hạn phản hồi 48 giờ. Ảnh lưu ngoài `wwwroot`, chỉ tải qua endpoint có quyền. Chi tiết request/response nằm trong Swagger.
 
 Booking detail trả `allowedActions: ["OpenDispute"]` cho đơn `PendingAcceptance`/`Completed` chưa có khiếu nại active để FE hiện nút gửi form.
-- Gói tăng hiển thị (`PromotionPlan`, `PromotionPurchase`, `ProviderMetricDaily`).
+- Áp dụng ưu tiên hiển thị theo lượt mua `Active` và số liệu `ProviderMetricDaily`. Danh mục gói và mua gói (sandbox) đã có ở mục 13a.
 - Quản lý người làm của công ty (`CompanyWorker`, `CompanyWorkerAssignment`), bảng giá/dịch vụ công ty, tài khoản ngân hàng, ví đối tác.
 - Hiển thị công ty trong danh bạ công khai và đặt lịch với công ty (`BookingService` hiện trả `PROVIDER_NOT_BOOKABLE` cho công ty).
 - Thông báo ra ngoài (SMS/push) — hiện chỉ ghi bản ghi `Notification` vào DB.
