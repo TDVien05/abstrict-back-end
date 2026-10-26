@@ -80,6 +80,9 @@ builder.Services.AddSingleton(serviceProvider => new CitizenIdProtector(
 builder.Services.AddScoped<IFreelancerKycService, FreelancerKycService>();
 builder.Services.AddScoped<IAdminKycService, AdminKycService>();
 builder.Services.AddScoped<IFreelancerDirectoryService, FreelancerDirectoryService>();
+builder.Services.AddScoped<IFreelancerProfileService, FreelancerProfileService>();
+builder.Services.AddScoped<IPromotionPlanService, PromotionPlanService>();
+builder.Services.AddScoped<IPromotionPurchaseService, PromotionPurchaseService>();
 builder.Services.Configure<KycOptions>(builder.Configuration.GetSection(KycOptions.SectionName));
 builder.Services.Configure<AddressKitOptions>(builder.Configuration.GetSection(AddressKitOptions.SectionName));
 builder.Services.AddHttpClient(AddressKitOptions.HttpClientName, (serviceProvider, client) =>
@@ -141,6 +144,12 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("booking-write", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("profile-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("promotion-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     options.AddPolicy("avatar-write", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
