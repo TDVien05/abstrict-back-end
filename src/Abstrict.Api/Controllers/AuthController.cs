@@ -18,7 +18,10 @@ namespace Abstrict.Api.Controllers;
 [ApiController]
 [Route(ApiRoutes.Version1 + "/auth")]
 public sealed class AuthController(
-    ICustomerRegistrationService registrationService, ICustomerLoginService loginService, IHostEnvironment environment) : ControllerBase
+    ICustomerRegistrationService registrationService,
+    ICustomerLoginService loginService,
+    IPasswordResetService resetService,
+    IHostEnvironment environment) : ControllerBase
 {
     /// <summary>
     /// Đăng nhập khách hàng.
@@ -238,6 +241,127 @@ public sealed class AuthController(
             return response is null
                 ? Problem(statusCode: StatusCodes.Status404NotFound, title: "OTP_CHALLENGE_NOT_FOUND", detail: "Không tìm thấy yêu cầu xác thực đang chờ.")
                 : Accepted(response);
+        }
+        catch (AuthFlowException exception)
+        {
+            return ToProblem(exception);
+        }
+    }
+
+    /// <summary>
+    /// Yêu cầu đặt lại mật khẩu (quên mật khẩu).
+    /// </summary>
+    /// <remarks>
+    /// Gửi mã OTP xác thực qua SMS tới số điện thoại của tài khoản đã đăng ký.
+    /// Trả về 202 kèm mã thử thách (challengeId) để tiếp tục xác thực OTP.
+    /// Giới hạn tần suất theo địa chỉ IP (5 lần/10 phút).
+    /// </remarks>
+    /// <param name="request">Thông tin yêu cầu bao gồm số điện thoại.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth-register")]
+    [ProducesResponseType<ForgotPasswordResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ForgotPasswordResponse>> ForgotPassword(
+        ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Accepted(await resetService.RequestResetAsync(request, cancellationToken));
+        }
+        catch (AuthFlowException exception)
+        {
+            return ToProblem(exception);
+        }
+    }
+
+    /// <summary>
+    /// Gửi lại mã OTP cho yêu cầu đặt lại mật khẩu.
+    /// </summary>
+    /// <remarks>
+    /// Gửi lại mã OTP cho thử thách đặt lại mật khẩu còn hiệu lực.
+    /// Giới hạn tần suất theo địa chỉ IP (3 lần/10 phút).
+    /// </remarks>
+    /// <param name="request">Thông tin yêu cầu gửi lại OTP.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    [HttpPost("forgot-password/resend")]
+    [EnableRateLimiting("auth-otp-resend")]
+    [ProducesResponseType<ForgotPasswordResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ForgotPasswordResponse>> ResendForgotPasswordOtp(
+        ResendForgotPasswordOtpRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await resetService.ResendResetOtpAsync(request, cancellationToken);
+            return response is null
+                ? Problem(statusCode: StatusCodes.Status404NotFound, title: "OTP_CHALLENGE_NOT_FOUND", detail: "Không tìm thấy yêu cầu xác thực đang chờ.")
+                : Accepted(response);
+        }
+        catch (AuthFlowException exception)
+        {
+            return ToProblem(exception);
+        }
+    }
+
+    /// <summary>
+    /// Xác thực mã OTP đặt lại mật khẩu.
+    /// </summary>
+    /// <remarks>
+    /// Xác thực mã OTP 6 chữ số và cấp mã xác thực đặt lại mật khẩu (reset token) có hiệu lực 15 phút.
+    /// Giới hạn tần suất theo địa chỉ IP (10 lần/phút).
+    /// </remarks>
+    /// <param name="request">Thông tin xác thực OTP.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    [HttpPost("forgot-password/verify-otp")]
+    [EnableRateLimiting("auth-otp-verify")]
+    [ProducesResponseType<VerifyResetOtpResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status410Gone)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<VerifyResetOtpResponse>> VerifyResetOtp(
+        VerifyResetOtpRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await resetService.VerifyResetOtpAsync(request, cancellationToken));
+        }
+        catch (AuthFlowException exception)
+        {
+            return ToProblem(exception);
+        }
+    }
+
+    /// <summary>
+    /// Đặt lại mật khẩu mới.
+    /// </summary>
+    /// <remarks>
+    /// Cập nhật mật khẩu mới của tài khoản bằng reset token (hoặc challengeId + code).
+    /// Tự động thu hồi tất cả các phiên đăng nhập hiện tại để đảm bảo an toàn.
+    /// Giới hạn tần suất theo địa chỉ IP (10 lần/phút).
+    /// </remarks>
+    /// <param name="request">Thông tin đặt lại mật khẩu.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("auth-login")]
+    [ProducesResponseType<ResetPasswordResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ResetPasswordResponse>> ResetPassword(
+        ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await resetService.ResetPasswordAsync(request, cancellationToken));
         }
         catch (AuthFlowException exception)
         {

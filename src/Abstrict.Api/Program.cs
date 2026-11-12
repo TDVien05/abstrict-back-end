@@ -102,6 +102,8 @@ builder.Services.AddScoped<BookingWorkflow>();
 builder.Services.AddScoped<ICustomerAddressService, CustomerAddressService>();
 builder.Services.AddScoped<ICustomerAvatarService, CustomerAvatarService>();
 builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
+builder.Services.AddSingleton(new PasswordResetTokenProvider(builder.Configuration["Otp:HmacKey"] ?? builder.Configuration["Jwt:SigningKey"]));
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();

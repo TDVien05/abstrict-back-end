@@ -191,3 +191,25 @@ Content-Type: application/json
 { "decision": "Approved" }
 
 ###
+
+### Password Reset Flow
+POST {{Abstrict.Api_HostAddress}}/api/v1/auth/forgot-password
+Content-Type: application/json
+
+{ "phoneNumber": "0900000001" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/auth/forgot-password/verify-otp
+Content-Type: application/json
+
+{ "challengeId": "00000000-0000-0000-0000-000000000000", "code": "123456" }
+
+###
+
+POST {{Abstrict.Api_HostAddress}}/api/v1/auth/reset-password
+Content-Type: application/json
+
+{ "resetToken": "token-here", "newPassword": "NewPassword123", "confirmPassword": "NewPassword123" }
+
+###
