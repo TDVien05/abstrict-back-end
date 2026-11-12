@@ -6,11 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Abstrict.Api.Controllers;
 
-/// <summary>Danh bạ freelancer công khai (chỉ hồ sơ đã duyệt, không lộ dữ liệu cá nhân/KYC).</summary>
+/// <summary>Danh bạ freelancer công khai (chỉ hồ sơ đã duyệt, không lộ dữ liệu cá nhân/KYC), kèm lịch rảnh và đánh giá.</summary>
 [ApiController]
 [AllowAnonymous]
 [Route(ApiRoutes.Version1 + "/freelancers")]
-public sealed class FreelancersController(IFreelancerDirectoryService directoryService, IAvailabilityService availabilityService) : ControllerBase
+public sealed class FreelancersController(
+    IFreelancerDirectoryService directoryService,
+    IAvailabilityService availabilityService,
+    IRatingService ratingService) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<PagedResponse<FreelancerSummaryResponse>>(StatusCodes.Status200OK)]
@@ -61,4 +64,12 @@ public sealed class FreelancersController(IFreelancerDirectoryService directoryS
         problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
         return NotFound(problem);
     }
+
+    /// <summary>Đánh giá công khai của freelancer.</summary>
+    [HttpGet("{providerId:guid}/ratings")]
+    [ProducesResponseType<PagedResponse<PublicRatingResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<PublicRatingResponse>>> ListRatings(
+        Guid providerId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
+        Ok(await ratingService.ListProviderRatingsAsync(providerId, page, pageSize, cancellationToken));
 }

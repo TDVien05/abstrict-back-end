@@ -14,26 +14,26 @@ namespace Abstrict.Api.Controllers;
 [ApiController]
 [Authorize(Roles = nameof(UserRole.Customer))]
 [Route(ApiRoutes.Version1 + "/disputes")]
-public sealed class DisputesController(IDisputeService disputes) : BookingControllerBase
+public sealed class DisputesController(IDisputeService disputes) : ControllerBase
 {
     [HttpGet("categories")]
     public ActionResult<IReadOnlyCollection<DisputeCategoryResponse>> Categories() => Ok(disputes.GetCategories());
 
     [HttpGet]
-    public Task<ActionResult<PagedResponse<DisputeResponse>>> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
-        Run(async () => await disputes.ListCustomerAsync(CurrentUserId, page, pageSize, cancellationToken));
+    public async Task<ActionResult<PagedResponse<DisputeResponse>>> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
+        Ok(await disputes.ListCustomerAsync(User.GetUserId(), page, pageSize, cancellationToken));
 
     [HttpGet("{disputeId:guid}")]
-    public Task<ActionResult<DisputeResponse>> Get(Guid disputeId, CancellationToken cancellationToken) =>
-        Run(async () => await disputes.GetCustomerAsync(CurrentUserId, disputeId, cancellationToken));
+    public async Task<ActionResult<DisputeResponse>> Get(Guid disputeId, CancellationToken cancellationToken) =>
+        Ok(await disputes.GetCustomerAsync(User.GetUserId(), disputeId, cancellationToken));
 
     [HttpPost("bookings/{bookingId:guid}")]
     [EnableRateLimiting("booking-write")]
     [ProducesResponseType<DisputeResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public Task<ActionResult<DisputeResponse>> Open(Guid bookingId, OpenDisputeRequest request, CancellationToken cancellationToken) =>
-        Run(async () => await disputes.OpenAsync(CurrentUserId, bookingId, request, cancellationToken));
+    public async Task<ActionResult<DisputeResponse>> Open(Guid bookingId, OpenDisputeRequest request, CancellationToken cancellationToken) =>
+        Ok(await disputes.OpenAsync(User.GetUserId(), bookingId, request, cancellationToken));
 
     [HttpPost("{disputeId:guid}/evidence")]
     [EnableRateLimiting("booking-write")]
@@ -41,18 +41,14 @@ public sealed class DisputesController(IDisputeService disputes) : BookingContro
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<DisputeEvidenceResponse>> UploadEvidence(Guid disputeId, IFormFile file, [FromForm, StringLength(300)] string? description, CancellationToken cancellationToken)
     {
-        try
-        {
-            await using var stream = file.OpenReadStream();
-            return Ok(await disputes.UploadEvidenceAsync(CurrentUserId, disputeId, description, file.Length, stream, cancellationToken));
-        }
-        catch (BookingFlowException exception) { return ToProblem(exception); }
+        await using var stream = file.OpenReadStream();
+        return Ok(await disputes.UploadEvidenceAsync(User.GetUserId(), disputeId, description, file.Length, stream, cancellationToken));
     }
 
     [HttpGet("{disputeId:guid}/evidence/{evidenceId:guid}/content")]
     public async Task<IActionResult> EvidenceContent(Guid disputeId, Guid evidenceId, CancellationToken cancellationToken)
     {
-        var stream = await disputes.OpenEvidenceAsync(CurrentUserId, false, disputeId, evidenceId, cancellationToken);
+        var stream = await disputes.OpenEvidenceAsync(User.GetUserId(), false, disputeId, evidenceId, cancellationToken);
         if (stream is null) return NotFound();
         Response.Headers.CacheControl = "private, no-store";
         Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -61,38 +57,6 @@ public sealed class DisputesController(IDisputeService disputes) : BookingContro
 
     [HttpPost("{disputeId:guid}/messages")]
     [EnableRateLimiting("booking-write")]
-    public Task<ActionResult<DisputeResponse>> Message(Guid disputeId, AddDisputeMessageRequest request, CancellationToken cancellationToken) =>
-        Run(async () => await disputes.AddCustomerMessageAsync(CurrentUserId, disputeId, request, cancellationToken));
-}
-
-[ApiController]
-[Authorize(Roles = nameof(UserRole.Admin))]
-[Route(ApiRoutes.Version1 + "/admin/disputes")]
-public sealed class AdminDisputesController(IDisputeService disputes) : BookingControllerBase
-{
-    [HttpGet]
-    public Task<ActionResult<PagedResponse<DisputeResponse>>> List([FromQuery] DisputeStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
-        Run(async () => await disputes.ListAdminAsync(status, page, pageSize, cancellationToken));
-
-    [HttpGet("{disputeId:guid}")]
-    public Task<ActionResult<DisputeResponse>> Get(Guid disputeId, CancellationToken cancellationToken) =>
-        Run(async () => await disputes.GetAdminAsync(disputeId, cancellationToken));
-
-    [HttpGet("{disputeId:guid}/evidence/{evidenceId:guid}/content")]
-    public async Task<IActionResult> EvidenceContent(Guid disputeId, Guid evidenceId, CancellationToken cancellationToken)
-    {
-        var stream = await disputes.OpenEvidenceAsync(CurrentUserId, true, disputeId, evidenceId, cancellationToken);
-        if (stream is null) return NotFound();
-        Response.Headers.CacheControl = "private, no-store";
-        Response.Headers["X-Content-Type-Options"] = "nosniff";
-        return File(stream.Stream, stream.ContentType);
-    }
-
-    [HttpPost("{disputeId:guid}/messages")]
-    public Task<ActionResult<DisputeResponse>> Message(Guid disputeId, AddDisputeMessageRequest request, [FromQuery] bool internalNote = false, CancellationToken cancellationToken = default) =>
-        Run(async () => await disputes.AddAdminMessageAsync(CurrentUserId, disputeId, request, internalNote, cancellationToken));
-
-    [HttpPost("{disputeId:guid}/decision")]
-    public Task<ActionResult<DisputeResponse>> Decide(Guid disputeId, DisputeDecisionRequest request, CancellationToken cancellationToken) =>
-        Run(async () => await disputes.DecideAsync(CurrentUserId, disputeId, request, cancellationToken));
+    public async Task<ActionResult<DisputeResponse>> Message(Guid disputeId, AddDisputeMessageRequest request, CancellationToken cancellationToken) =>
+        Ok(await disputes.AddCustomerMessageAsync(User.GetUserId(), disputeId, request, cancellationToken));
 }

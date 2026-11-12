@@ -13,7 +13,7 @@ namespace Abstrict.Api.Controllers;
 [ApiController]
 [Authorize(Roles = nameof(UserRole.Customer))]
 [Route(ApiRoutes.Version1 + "/payments/sandbox")]
-public sealed class SandboxPaymentsController(IBookingPaymentService paymentService) : BookingControllerBase
+public sealed class SandboxPaymentsController(IBookingPaymentService paymentService) : ControllerBase
 {
     /// <summary>Chốt kết quả thành công/thất bại cho một giao dịch sandbox của chính mình.</summary>
     [HttpPost("{paymentId:guid}/confirm")]
@@ -21,5 +21,5 @@ public sealed class SandboxPaymentsController(IBookingPaymentService paymentServ
     [ProducesResponseType<DepositPaymentResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DepositPaymentResponse>> Confirm(Guid paymentId, SandboxPaymentResultRequest request, CancellationToken cancellationToken) =>
-        await Run(async () => await paymentService.ConfirmSandboxAsync(CurrentUserId, paymentId, request.Succeeded, cancellationToken));
+        Ok(await paymentService.ConfirmSandboxAsync(User.GetUserId(), paymentId, request.Succeeded, cancellationToken));
 }
