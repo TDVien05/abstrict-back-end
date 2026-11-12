@@ -25,7 +25,7 @@ builder.Configuration
     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
     .AddEnvironmentVariables()
     .AddCommandLine(args);
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers(options => options.Filters.Add<Abstrict.Api.Common.FlowExceptionFilter>()).AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
@@ -102,6 +102,8 @@ builder.Services.AddScoped<BookingWorkflow>();
 builder.Services.AddScoped<ICustomerAddressService, CustomerAddressService>();
 builder.Services.AddScoped<ICustomerAvatarService, CustomerAvatarService>();
 builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
+builder.Services.AddSingleton(new PasswordResetTokenProvider(builder.Configuration["Otp:HmacKey"] ?? builder.Configuration["Jwt:SigningKey"]));
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
